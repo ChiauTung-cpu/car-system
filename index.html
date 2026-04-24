@@ -81,6 +81,11 @@ td:nth-child(1) {
 
 <h2>🚗 車輛保養查詢</h2>
 
+<div id="stats" style="margin:10px 0; font-size:16px;">
+  已保養：<span id="okCount">0</span> 台　
+  未保養：<span id="noCount">0</span> 台
+</div>
+
 <input type="text" id="search" placeholder="輸入車輛號碼">
 <button onclick="search()">搜尋</button>
 
@@ -145,23 +150,38 @@ function render(data) {
   const tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
 
+  let okCount = 0;
+  let noCount = 0;
+
   data.forEach(item => {
     const ok = item.date && item.date.trim() !== "";
+
+    if (ok) {
+      okCount++;
+    } else {
+      noCount++;
+    }
 
     tbody.innerHTML += `
       <tr>
         <td>${item.car}</td>
         <td>${item.radio1}</td>
         <td>${item.radio2}</td>
+
         <td class="${ok ? 'ok' : 'no'}">
           ${ok ? "已保養" : "未保養"}
         </td>
+
         <td>${item.date || "-"}</td>
         <td>${item.person || "-"}</td>
         <td>${item.remark || "-"}</td>
       </tr>
     `;
   });
+
+  // ⭐ 更新統計數字
+  document.getElementById("okCount").innerText = okCount;
+  document.getElementById("noCount").innerText = noCount;
 }
 
 function search() {
