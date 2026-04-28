@@ -68,8 +68,8 @@ th { background: #f1f3f5; }
 /* 📱 手機版 */
 @media (max-width: 600px) {
 
-  table {
-    display: none; /* 手機隱藏表格 */
+  #carPage table {
+    display: none;
   }
 
   .card {
@@ -286,13 +286,13 @@ function loadData(pageId){
 function render(pageId, data){
 
   const tbody = document.getElementById(pageId + "Body");
-  let cardList = document.getElementById("carCardList");
 
-  // 清空
   tbody.innerHTML = "";
 
-  if (pageId === "carPage" && cardList) {
-    cardList.innerHTML = "";
+  let cardList = null;
+  if (pageId === "carPage") {
+    cardList = document.getElementById("carCardList");
+    cardList.innerHTML = ""; // 手機卡片也清空
   }
 
 data.sort((a, b) => {
@@ -409,16 +409,23 @@ if (pageId === "carPage") {
 }
 
 function filterMonthMulti(pageId){
-  const data=pageData[pageId]||[];
+  const data = pageData[pageId] || [];
 
-  const checked=[...document.querySelectorAll(`#${pageId} input:checked`)]
-    .map(c=>c.value);
+  const checked = [...document.querySelectorAll(
+    `#${pageId} .month-group input[type="checkbox"]:checked`
+  )].map(c => c.value);
 
-  if(!checked.length) return render(pageId,data);
+  if (!checked.length) return render(pageId, data);
 
-  render(pageId,data.filter(r=>{
-    let m=r["保養月份"]||r["實際保養月份"]||"";
-    return checked.some(x=>m.includes(x));
+  const getMonth = (row) => {
+    let m = row["保養月份"] || row["實際保養月份"] || "";
+    const match = m.match(/\d+/);
+    return match ? match[0] : "";
+  };
+
+  render(pageId, data.filter(r => {
+    const m = getMonth(r);
+    return checked.includes(m);
   }));
 }
 
