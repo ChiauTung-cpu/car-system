@@ -1,203 +1,434 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>北區車上台保養查詢系統</title>
+<meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>北區保養查詢系統</title>
 
-  <style>
+<style>
 body {
-  font-family: "Arial", sans-serif;
+  font-family: Arial;
   background: #f4f6f9;
   padding: 20px;
-  color: #333;
+  text-align: center;
 }
 
-.container {
-  max-width: 1100px;
-  margin: auto;
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-}
-
-h2 {
-  margin-bottom: 15px;
-}
-
-input {
-  padding: 10px;
-  width: 300px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-}
+.page { display: none; }
 
 button {
   padding: 10px 15px;
-  margin-left: 5px;
+  margin: 5px;
   border: none;
   border-radius: 8px;
   background: #3498db;
   color: white;
+  cursor: pointer;
+}
+
+button:hover { background: #2980b9; }
+
+.container {
+  max-width: 1100px;
+  margin: 20px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.month-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 10px;
 }
 
 table {
   width: 100%;
-  margin-top: 20px;
+  margin-top: 10px;
   border-collapse: collapse;
-  table-layout: fixed;
-}
-
-td, th {
-  white-space: normal;
-  word-break: break-word;
 }
 
 th, td {
   border: 1px solid #eee;
   padding: 10px;
   text-align: center;
-  font-size: 14px;
 }
 
-th {
-  background: #f1f3f5;
-}
-
-th:nth-child(1),
-td:nth-child(1) {
-  width: 80px;
-}
+th { background: #f1f3f5; }
 
 .ok { color: green; font-weight: bold; }
 .no { color: red; font-weight: bold; }
 
-  </style>
+/* 預設：桌機 */
+.card {
+  display: none;
+}
+
+/* 📱 手機版 */
+@media (max-width: 600px) {
+
+  table {
+    display: none; /* 手機隱藏表格 */
+  }
+
+  .card {
+    display: block;
+    background: white;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 10px 0;
+    text-align: left;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  .title {
+    font-weight: bold;
+    font-size: 16px;
+  }
+
+  .small {
+    font-size: 13px;
+  }
+
+  .ok { color: green; }
+  .no { color: red; }
+}
+
+#carCardList {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  #carCardList {
+    display: block;
+  }
+}
+
+</style>
 </head>
 
 <body>
 
-<div class="container">
-
-<h2>🚗 北區車上台保養查詢</h2>
-
-<div id="stats" style="margin:10px 0; font-size:16px;">
-  已保養：<span id="okCount">0</span> 台　
-  未保養：<span id="noCount">0</span> 台
+<!-- 🔘 分頁 -->
+<div>
+  <button onclick="showPage('stationPage')">轉播站</button>
+  <button onclick="showPage('deskPage')">桌上台</button>
+  <button onclick="showPage('tunnelPage')">隧道</button>
+  <button onclick="showPage('roadPage')">路邊</button>
+  <button onclick="showPage('carPage')">車上台</button>
 </div>
 
-<input type="text" id="search" placeholder="輸入車輛號碼">
-<button onclick="search()">搜尋</button>
+<!-- 📡 共用月份 UI -->
+<script>
+function monthUI(page){
+  return `
+  <div class="month-group">
+    ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`
+      <label><input type="checkbox" value="${m}" onchange="filterMonthMulti('${page}')">${m}月</label>
+    `).join("")}
+  </div>`;
+}
+</script>
 
-<table>
-  <thead>
-    <tr>
-      <th>車輛號碼</th>
-      <th>RAIDO 1 ID</th>
-      <th>RAIDO 2 ID</th>
-      <th>狀態</th>
-      <th>保養日期</th>
-      <th>保養人員</th>
-      <th>備註</th>
-    </tr>
-  </thead>
-  <tbody id="tbody"></tbody>
-</table>
+<!-- 📡 轉播站 -->
+<div id="stationPage" class="page">
+  <div class="container">
+    <h2>📡 轉播站</h2>
+    <div id="stationMonths"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>站台編號</th>
+          <th>站台名稱</th>
+          <th>保養月份</th>
+          <th>保養日期</th>
+          <th>維護人員</th>
+        </tr>
+      </thead>
+      <tbody id="stationPageBody"></tbody>
+    </table>
+  </div>
+</div>
 
+<!-- 🖥 桌上台 -->
+<div id="deskPage" class="page">
+  <div class="container">
+    <h2>🖥 桌上台</h2>
+    <div id="deskMonths"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>站台編號</th>
+          <th>站台名稱</th>
+          <th>無線電號碼</th>
+          <th>安裝位置</th>
+          <th>保養月份</th>
+          <th>保養日期</th>
+          <th>維護人員</th>
+        </tr>
+      </thead>
+      <tbody id="deskPageBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 🚇 隧道 -->
+<div id="tunnelPage" class="page">
+  <div class="container">
+    <h2>🚇 隧道</h2>
+    <div id="tunnelMonths"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>中繼站編號</th>
+          <th>站台/隧道名稱</th>
+          <th>保養月份</th>
+          <th>保養日期</th>
+          <th>維護人員</th>
+        </tr>
+      </thead>
+      <tbody id="tunnelPageBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 🛣 路邊 -->
+<div id="roadPage" class="page">
+  <div class="container">
+    <h2>🛣 路邊</h2>
+    <div id="roadMonths"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>中繼站編號</th>
+          <th>站台/隧道名稱</th>
+          <th>保養月份</th>
+          <th>保養日期</th>
+          <th>維護人員</th>
+        </tr>
+      </thead>
+      <tbody id="roadPageBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 🚗 車上台 -->
+<div id="carPage" class="page">
+  <div class="container">
+    <h2>🚗 車上台</h2>
+
+    已保養：<span id="carOkCount">0</span>　
+    未保養：<span id="carNoCount">0</span>
+
+    <br><br>
+    <input placeholder="輸入車號" oninput="search('carPage', this.value)">
+
+    <table>
+      <thead>
+        <tr>
+          <th>車輛號碼</th>
+          <th>RAIDO 1 ID</th>
+          <th>RAIDO 2 ID</th>
+          <th>狀態</th>
+          <th>保養日期</th>
+          <th>保養人員</th>
+          <th>備註</th>
+        </tr>
+      </thead>
+      <tbody id="carPageBody"></tbody>
+    </table>
+       <div id="carCardList"></div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <script>
-let allData = [];
+let pageData = {};
 
-function loadData() {
-  fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=327091794&single=true&output=csv&t=" + Date.now())
-    .then(res => res.text())
-    .then(text => {
+const urls = {
+  stationPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=1360678314&single=true&output=csv",
+  deskPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=727273350&single=true&output=csv",
+  tunnelPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=260259093&single=true&output=csv",
+  roadPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=1366752685&single=true&output=csv",
+  carPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=327091794&single=true&output=csv"
+};
 
-      Papa.parse(text, {
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
+/* 初始化月份 */
+["station","desk","tunnel","road"].forEach(p=>{
+  document.getElementById(p+"Months").innerHTML = monthUI(p+"Page");
+});
 
-          allData = results.data.map(row => ({
-            car: row["車輛號碼"] || "",
-            radio1: row["RAIDO 1 ID"] || "",
-            radio2: row["RAIDO 2 ID"] || "",
-            date: row["保養日期"] || "",
-            person: row["保養人員"] || "",
-            remark: row["備註"] || ""
-          }));
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.style.display="none");
+  document.getElementById(id).style.display="block";
 
-          allData.sort((a, b) => {
-            const aOk = a.date && a.date.trim() !== "";
-            const bOk = b.date && b.date.trim() !== "";
-            return aOk - bOk;
-          });
+  if(!pageData[id]) loadData(id);
+  else render(id,pageData[id]);
+}
 
-          render(allData);
+function loadData(pageId){
+  fetch(urls[pageId]+"&t="+Date.now())
+    .then(r=>r.text())
+    .then(t=>{
+      Papa.parse(t,{
+        header:true,
+        skipEmptyLines:true,
+        complete:r=>{
+          pageData[pageId]=r.data;
+          render(pageId,r.data);
         }
       });
-
-    })
-    .catch(err => {
-      console.log("CSV 讀取錯誤:", err);
     });
 }
 
-function render(data) {
-  const tbody = document.getElementById("tbody");
+function render(pageId, data){
+
+  const tbody = document.getElementById(pageId + "Body");
+  let cardList = document.getElementById("carCardList");
+
+  // 清空
   tbody.innerHTML = "";
 
-  let okCount = 0;
-  let noCount = 0;
+  if (pageId === "carPage" && cardList) {
+    cardList.innerHTML = "";
+  }
 
-  data.forEach(item => {
-    const ok = item.date && item.date.trim() !== "";
+data.sort((a, b) => {
 
-    if (ok) {
-      okCount++;
-    } else {
-      noCount++;
-    }
+  // ⭐ 是否已保養
+  const aDone = (a["保養日期"] || "").trim() !== "";
+  const bDone = (b["保養日期"] || "").trim() !== "";
 
+  // ⭐ 先分組：未保養在前
+  if (aDone !== bDone) {
+    return aDone ? 1 : -1;
+  }
+
+  // ⭐ 取月份（支援兩種欄位）
+  const getMonth = (row) => {
+    let m = row["保養月份"] || row["實際保養月份"] || "";
+
+    // 抓數字（例如 "3月" → 3）
+    const match = m.match(/\d+/);
+    return match ? parseInt(match[0]) : 999;
+  };
+
+  const aMonth = getMonth(a);
+  const bMonth = getMonth(b);
+
+  // ⭐ 同組內 → 按月份排序
+  return aMonth - bMonth;
+});
+
+  let ok=0,no=0;
+
+data.forEach(r => {
+
+  /* 🚗 車上台 */
+if (pageId === "carPage") {
+
+  let carNo = r["車輛號碼"] || "";
+  let done = r["保養日期"];
+
+  done ? ok++ : no++;
+
+  // 🖥 桌機表格
+  tbody.innerHTML += `
+    <tr>
+      <td>${carNo}</td>
+      <td>${r["RAIDO 1 ID"]||""}</td>
+      <td>${r["RAIDO 2 ID"]||""}</td>
+      <td class="${done?'ok':'no'}">${done?'已保養':'未保養'}</td>
+      <td>${r["保養日期"]||"-"}</td>
+      <td>${r["保養人員"]||"-"}</td>
+      <td>${r["備註"]||"-"}</td>
+    </tr>
+  `;
+
+  // 📱 手機卡片
+  cardList.innerHTML += `
+    <div class="card">
+      <div class="title">${carNo}</div>
+      <div class="${done?'ok':'no'}">
+        ${done?'已保養':'未保養'}
+      </div>
+      <div class="small">日期：${r["保養日期"]||"-"}</div>
+      <div class="small">人員：${r["保養人員"]||"-"}</div>
+    </div>
+  `;
+}
+  /* 📡 轉播站 */
+  else if (pageId === "stationPage") {
     tbody.innerHTML += `
       <tr>
-        <td>${item.car}</td>
-        <td>${item.radio1}</td>
-        <td>${item.radio2}</td>
-
-        <td class="${ok ? 'ok' : 'no'}">
-          ${ok ? "已保養" : "未保養"}
-        </td>
-
-        <td>${item.date || "-"}</td>
-        <td>${item.person || "-"}</td>
-        <td>${item.remark || "-"}</td>
+        <td>${r["站台編號"] || ""}</td>
+        <td>${r["站台名稱"] || ""}</td>
+        <td>${r["保養月份"] || ""}</td>
+        <td>${r["保養日期"] || "-"}</td>
+        <td>${r["維護人員"] || "-"}</td>
       </tr>
     `;
-  });
+  }
 
-  // ⭐ 更新統計數字
-  document.getElementById("okCount").innerText = okCount;
-  document.getElementById("noCount").innerText = noCount;
+  /* 🖥 桌上台 */
+  else if (pageId === "deskPage") {
+    tbody.innerHTML += `
+      <tr>
+        <td>${r["站台編號"] || ""}</td>
+        <td>${r["站台名稱"] || ""}</td>
+        <td>${r["無線電號碼"] || ""}</td>
+        <td>${r["安裝位置"] || ""}</td>
+        <td>${r["保養月份"] || ""}</td>
+        <td>${r["保養日期"] || "-"}</td>
+        <td>${r["維護人員"] || "-"}</td>
+      </tr>
+    `;
+  }
+
+  /* 🚇 隧道 + 🛣 路邊 */
+  else if (pageId === "tunnelPage" || pageId === "roadPage") {
+    tbody.innerHTML += `
+      <tr>
+        <td>${r["中繼站編號"] || ""}</td>
+        <td>${r["站台/隧道名稱"] || ""}</td>
+        <td>${r["保養月份"] || ""}</td>
+        <td>${r["保養日期"] || "-"}</td>
+        <td>${r["維護人員"] || "-"}</td>
+      </tr>
+    `;
+  }
+
+});
+
+  if(pageId==="carPage"){
+    carOkCount.innerText=ok;
+    carNoCount.innerText=no;
+  }
 }
 
-function search() {
-  const key = document.getElementById("search").value.toLowerCase();
+function filterMonthMulti(pageId){
+  const data=pageData[pageId]||[];
 
-  const filtered = allData.filter(x =>
-    (x.car || "").toLowerCase().includes(key) ||
-    (x.radio1 || "").toLowerCase().includes(key) ||
-    (x.radio2 || "").toLowerCase().includes(key)
-  );
+  const checked=[...document.querySelectorAll(`#${pageId} input:checked`)]
+    .map(c=>c.value);
 
-  render(filtered);
+  if(!checked.length) return render(pageId,data);
+
+  render(pageId,data.filter(r=>{
+    let m=r["保養月份"]||r["實際保養月份"]||"";
+    return checked.some(x=>m.includes(x));
+  }));
 }
 
-loadData();
-setInterval(loadData, 15000);
+function search(pageId,k){
+  k=k.toLowerCase();
+  render(pageId,(pageData[pageId]||[])
+    .filter(r=>(r["車輛號碼"]||"").toLowerCase().includes(k)));
+}
+
+showPage("carPage");
 </script>
 
 </body>
