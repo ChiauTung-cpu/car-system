@@ -436,11 +436,14 @@ function updateSummary(data){
   data.forEach(r => {
 
     const hasDate =
-      r["保養日期"] &&
-      r["保養日期"].trim() !== "";
+  (r["保養日期"] || "").trim() !== "";
 
-    const month =
-      parseInt(r["保養月份"]);
+const month =
+  parseInt(
+    (r["保養月份"] || "")
+      .replace("月","")
+      .trim()
+  );
 
     // 已保養
     if(hasDate){
