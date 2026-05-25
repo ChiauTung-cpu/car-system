@@ -616,7 +616,10 @@ function render(pageId, data){
   }
 }
 
-function filterMonthMulti(pageId){
+ function filterMonthMulti(pageId){
+
+  if(pageId === "carPage") return;
+
   const data = pageData[pageId] || [];
   const months = selectedMonths[pageId] || [];
 
@@ -625,7 +628,7 @@ function filterMonthMulti(pageId){
   }
 
   const getMonth = (row)=>{
-    let m = row["保養月份"] || row["實際保養月份"] || "";
+    let m = row["保養月份"] || "";
     const match = m.match(/\d+/);
     return match ? match[0] : "";
   };
@@ -640,6 +643,12 @@ function search(pageId,k){
   render(pageId,(pageData[pageId]||[])
     .filter(r=>(r["車輛號碼"]||"").toLowerCase().includes(k)));
 }
+
+const monthPages = ["station","desk","tunnel","road"];
+
+ monthPages.forEach(p=>{
+  document.getElementById(p+"Months").innerHTML = monthUI(p+"Page");
+});
 
 showPage("carPage");
 </script>
