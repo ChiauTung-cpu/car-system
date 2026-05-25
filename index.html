@@ -6,6 +6,12 @@
 <title>北區保養查詢系統</title>
 
 <style>
+
+.warn {
+  border: 3px solid #f1c40f;
+  background: #fffbea;
+}
+
 body {
   font-family: Arial;
   background: #f4f6f9;
@@ -248,6 +254,23 @@ function monthUI(page){
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <script>
+
+function needWarning(r) {
+
+  // 有保養日期 = 已完成
+  if (r["保養日期"] && r["保養日期"].trim() !== "") {
+    return false;
+  }
+
+  // 取得現在月份
+  const nowMonth = new Date().getMonth() + 1;
+
+  // 保養月份
+  const month = parseInt(r["保養月份"]);
+
+  // 當月未保養 → 黃框
+  return month === nowMonth;
+}
 let pageData = {};
 
 let selectedMonths = {};
@@ -317,7 +340,7 @@ function render(pageId, data){
     cardList.innerHTML = "";
   }
 
-  // ⭐ 排序（只保留這一個！）
+  // ⭐ 排序
   data.sort((a, b) => {
 
     const aDone = (a["保養日期"] || "").trim() !== "";
@@ -362,7 +385,7 @@ function render(pageId, data){
 
       if(cardList){
         cardList.innerHTML += `
-          <div class="card">
+          <div class="card ${needWarning(r) ? 'warn' : ''}">
             <div class="title">${carNo}</div>
             <div class="${done?'ok':'no'}">${done?'已保養':'未保養'}</div>
             <div class="small">日期：${r["保養日期"]||"-"}</div>
@@ -386,11 +409,12 @@ function render(pageId, data){
 
       if(cardList){
         cardList.innerHTML += `
-          <div class="card">
+          <div class="card ${needWarning(r) ? 'warn' : ''}">
             <div class="title">${r["站台名稱"]}</div>
             <div class="small">編號：${r["站台編號"]}</div>
             <div class="small">月份：${r["保養月份"]}</div>
             <div class="small">日期：${r["保養日期"]||"-"}</div>
+            <div class="small">保養人員：${r["維護人員"] || "-"}</div>
           </div>
         `;
       }
@@ -412,11 +436,12 @@ function render(pageId, data){
 
       if(cardList){
         cardList.innerHTML += `
-          <div class="card">
+          <div class="card ${needWarning(r) ? 'warn' : ''}">
             <div class="title">${r["站台名稱"]}</div>
             <div class="small">位置：${r["安裝位置"]}</div>
             <div class="small">月份：${r["保養月份"]}</div>
             <div class="small">日期：${r["保養日期"]||"-"}</div>
+            <div class="small">保養人員：${r["維護人員"] || "-"}</div>
           </div>
         `;
       }
@@ -436,11 +461,12 @@ function render(pageId, data){
 
       if(cardList){
         cardList.innerHTML += `
-          <div class="card">
+          <div class="card ${needWarning(r) ? 'warn' : ''}">
             <div class="title">${r["站台/隧道名稱"]}</div>
             <div class="small">編號：${r["中繼站編號"]}</div>
             <div class="small">月份：${r["保養月份"]}</div>
             <div class="small">日期：${r["保養日期"]||"-"}</div>
+            <div class="small">保養人員：${r["維護人員"] || "-"}</div>
           </div>
         `;
       }
