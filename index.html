@@ -201,19 +201,17 @@ function monthUI(page){
 
 <!-- 🖥 桌上台 -->
 <div id="deskPage" class="page">
-  <div class="container">
-    <h2>🖥 桌上台</h2>
    <div class="sum doneBox">
-    🟩 已保養：<span id="${pageId}-doneCount">0</span> 台
-  </div>
+    🟩 已保養：<span id="deskPage-doneCount">0</span> 台
+   </div>
 
-  <div class="sum warnBox">
-    🟨 本月未保養：<span id="warnCount">0</span> 台
-  </div>
+   <div class="sum warnBox">
+    🟨 本月未保養：<span id="deskPage-warnCount">0</span> 台
+   </div>
 
-  <div class="sum overdueBox">
-    🟥 逾期未保養：<span id="overdueCount">0</span> 台
-  </div>
+   <div class="sum overdueBox">
+    🟥 逾期未保養：<span id="deskPage-overdueCount">0</span> 台
+   </div>
 
 </div>
     <div id="deskMonths"></div>
@@ -237,18 +235,18 @@ function monthUI(page){
 
 <!-- 🚇 隧道 -->
 <div id="tunnelPage" class="page">
-  <div class="container">
-    <h2>🚇 隧道</h2>
-    <div class="sum doneBox">
-   🟩 已保養：<span id="station-doneCount">0</span> 台
+   <div class="container">
+     <h2>🚇 隧道</h2>
+   <div class="sum doneBox">
+    🟩 已保養：<span id="tunnelPage-doneCount">0</span> 台
    </div>
 
- <div class="sum warnBox">
-   🟨 本月未保養：<span id="station-warnCount">0</span> 台
+   <div class="sum warnBox">
+    🟨 本月未保養：<span id="tunnelPage-warnCount">0</span> 台
    </div>
 
-<div class="sum overdueBox">
-   🟥 逾期未保養：<span id="station-overdueCount">0</span> 台
+   <div class="sum overdueBox">
+    🟥 逾期未保養：<span id="tunnelPage-overdueCount">0</span> 台
    </div>
 
 </div>
@@ -271,18 +269,16 @@ function monthUI(page){
 
 <!-- 🛣 路邊 -->
 <div id="roadPage" class="page">
-  <div class="container">
-   <h2>🛣 路邊</h2>
- <div class="sum doneBox">
-   🟩 已保養：<span id="station-doneCount">0</span> 台
+   <div class="sum doneBox">
+    🟩 已保養：<span id="roadPage-doneCount">0</span> 台
    </div>
 
- <div class="sum warnBox">
-   🟨 本月未保養：<span id="station-warnCount">0</span> 台
+   <div class="sum warnBox">
+   🟨 本月未保養：<span id="roadPage-warnCount">0</span> 台
    </div>
 
-<div class="sum overdueBox">
-   🟥 逾期未保養：<span id="station-overdueCount">0</span> 台
+   <div class="sum overdueBox">
+   🟥 逾期未保養：<span id="roadPage-overdueCount">0</span> 台
    </div>
 
 </div>
