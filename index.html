@@ -66,6 +66,34 @@ th { background: #f1f3f5; }
 .ok { color: green; font-weight: bold; }
 .no { color: red; font-weight: bold; }
 
+.summary{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:15px 0;
+}
+
+.sum{
+  padding:10px 15px;
+  border-radius:10px;
+  font-weight:bold;
+}
+
+.doneBox{
+  background:#f0fff4;
+  border:2px solid #2ecc71;
+}
+
+.warnBox{
+  background:#fffbea;
+  border:2px solid #f1c40f;
+}
+
+.overdueBox{
+  background:#fff0f0;
+  border:2px solid #e74c3c;
+}
+
 /* 預設：桌機 */
 .card {
   display: none;
@@ -140,6 +168,19 @@ function monthUI(page){
 <div id="stationPage" class="page">
   <div class="container">
     <h2>📡 轉播站</h2>
+   <div class="sum doneBox">
+    🟩 已保養：<span id="doneCount">0</span> 台
+  </div>
+
+  <div class="sum warnBox">
+    🟨 本月未保養：<span id="warnCount">0</span> 台
+  </div>
+
+  <div class="sum overdueBox">
+    🟥 逾期未保養：<span id="overdueCount">0</span> 台
+  </div>
+
+</div>
     <div id="stationMonths"></div>
     <table>
       <thead>
@@ -161,6 +202,19 @@ function monthUI(page){
 <div id="deskPage" class="page">
   <div class="container">
     <h2>🖥 桌上台</h2>
+   <div class="sum doneBox">
+    🟩 已保養：<span id="doneCount">0</span> 台
+  </div>
+
+  <div class="sum warnBox">
+    🟨 本月未保養：<span id="warnCount">0</span> 台
+  </div>
+
+  <div class="sum overdueBox">
+    🟥 逾期未保養：<span id="overdueCount">0</span> 台
+  </div>
+
+</div>
     <div id="deskMonths"></div>
     <table>
       <thead>
@@ -184,6 +238,19 @@ function monthUI(page){
 <div id="tunnelPage" class="page">
   <div class="container">
     <h2>🚇 隧道</h2>
+   <div class="sum doneBox">
+    🟩 已保養：<span id="doneCount">0</span> 台
+  </div>
+
+  <div class="sum warnBox">
+    🟨 本月未保養：<span id="warnCount">0</span> 台
+  </div>
+
+  <div class="sum overdueBox">
+    🟥 逾期未保養：<span id="overdueCount">0</span> 台
+  </div>
+
+</div>
     <div id="tunnelMonths"></div>
     <table>
       <thead>
@@ -204,7 +271,20 @@ function monthUI(page){
 <!-- 🛣 路邊 -->
 <div id="roadPage" class="page">
   <div class="container">
-    <h2>🛣 路邊</h2>
+   <h2>🛣 路邊</h2>
+   <div class="sum doneBox">
+    🟩 已保養：<span id="doneCount">0</span> 台
+  </div>
+
+  <div class="sum warnBox">
+    🟨 本月未保養：<span id="warnCount">0</span> 台
+  </div>
+
+  <div class="sum overdueBox">
+    🟥 逾期未保養：<span id="overdueCount">0</span> 台
+  </div>
+
+</div>
     <div id="roadMonths"></div>
     <table>
       <thead>
@@ -316,18 +396,74 @@ function showPage(id){
 }
 
 function loadData(pageId){
+
   fetch(urls[pageId]+"&t="+Date.now())
+
     .then(r=>r.text())
+
     .then(t=>{
+
       Papa.parse(t,{
+
         header:true,
         skipEmptyLines:true,
+
         complete:r=>{
+
           pageData[pageId]=r.data;
+
           render(pageId,r.data);
+
+          // ⭐ 統計
+          updateSummary(r.data);
+
         }
+
       });
+
     });
+
+}
+
+function updateSummary(data){
+
+  const nowMonth = new Date().getMonth() + 1;
+
+  let done = 0;
+  let warn = 0;
+  let overdue = 0;
+
+  data.forEach(r => {
+
+    const hasDate =
+      r["保養日期"] &&
+      r["保養日期"].trim() !== "";
+
+    const month =
+      parseInt(r["保養月份"]);
+
+    // 已保養
+    if(hasDate){
+      done++;
+      return;
+    }
+
+    // 本月未保養
+    if(month === nowMonth){
+      warn++;
+      return;
+    }
+
+    // 逾期未保養
+    if(month < nowMonth){
+      overdue++;
+    }
+
+  });
+
+  document.getElementById("doneCount").innerText = done;
+  document.getElementById("warnCount").innerText = warn;
+  document.getElementById("overdueCount").innerText = overdue;
 }
 
 function render(pageId, data){
