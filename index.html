@@ -169,7 +169,7 @@ function monthUI(page){
   <div class="container">
     <h2>📡 轉播站</h2>
    <div class="sum doneBox">
-    🟩 已保養：<span id="doneCount">0</span> 台
+    🟩 已保養：<span id="${pageId}-doneCount">0</span> 台
   </div>
 
   <div class="sum warnBox">
@@ -203,7 +203,7 @@ function monthUI(page){
   <div class="container">
     <h2>🖥 桌上台</h2>
    <div class="sum doneBox">
-    🟩 已保養：<span id="doneCount">0</span> 台
+    🟩 已保養：<span id="${pageId}-doneCount">0</span> 台
   </div>
 
   <div class="sum warnBox">
@@ -239,7 +239,7 @@ function monthUI(page){
   <div class="container">
     <h2>🚇 隧道</h2>
    <div class="sum doneBox">
-    🟩 已保養：<span id="doneCount">0</span> 台
+    🟩 已保養：<span id="${pageId}-doneCount">0</span> 台
   </div>
 
   <div class="sum warnBox">
@@ -273,7 +273,7 @@ function monthUI(page){
   <div class="container">
    <h2>🛣 路邊</h2>
    <div class="sum doneBox">
-    🟩 已保養：<span id="doneCount">0</span> 台
+    🟩 已保養：<span id="${pageId}-doneCount">0</span> 台
   </div>
 
   <div class="sum warnBox">
@@ -415,7 +415,7 @@ function loadData(pageId){
           render(pageId,r.data);
 
           // ⭐ 統計
-          updateSummary(r.data);
+          updateSummary(pageId,r.data);
 
         }
 
@@ -425,7 +425,7 @@ function loadData(pageId){
 
 }
 
-function updateSummary(data){
+function updateSummary(pageId,data){
 
   const nowMonth = new Date().getMonth() + 1;
 
@@ -464,9 +464,9 @@ const month =
 
   });
 
-  document.getElementById("doneCount").innerText = done;
-  document.getElementById("warnCount").innerText = warn;
-  document.getElementById("overdueCount").innerText = overdue;
+  document.getElementById(pageId+"-doneCount").innerText = done;
+  document.getElementById(pageId+"-warnCount").innerText = warn;
+  document.getElementById(pageId+"-overdueCount").innerText = overdue;
 }
 
 function render(pageId, data){
