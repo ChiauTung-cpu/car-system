@@ -278,14 +278,13 @@ th { background: #f1f3f5; }
   <div id="roadPageCardList" class="card-list"></div>
 </div>
 
-<!-- 🚗 5. 車上台頁面 -->
+<!-- 🚗 5. 車上台頁面 (不包含月份按鈕) -->
 <div id="carPage" class="page container">
   <h2>車上台保養紀錄</h2>
   <div class="period-group">
     <button class="period-btn btn-h1" onclick="switchPeriod('carPage', 'H1')">上半年度 (3~8月)</button>
     <button class="period-btn btn-h2" onclick="switchPeriod('carPage', 'H2')">下半年度 (9~2月)</button>
   </div>
-  <div id="carPageMonths" class="month-group"></div>
   <input type="text" class="search-box" placeholder="搜尋車號..." onkeyup="search('carPage', this.value)">
   <div class="status-counter">
     未保養：<span id="carPageNoCount" class="no">0</span> 輛 | 
@@ -341,7 +340,8 @@ function monthUI(pageId){
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  pageIds.forEach(p => {
+  // 只為有需要月份按鈕的頁面生成 UI（排除 carPage）
+  ["stationPage", "deskPage", "tunnelPage", "roadPage"].forEach(p => {
     const el = document.getElementById(p + "Months");
     if (el) el.innerHTML = monthUI(p);
   });
@@ -356,7 +356,6 @@ function toggleMonth(pageId, month){
     list.splice(idx, 1);
   } else {
     list.push(month);
-    // 點擊月份時，自動切換至對應的半年度
     if (month >= 3 && month <= 8) {
       currentPeriods[pageId] = 'H1';
     } else {
@@ -384,7 +383,7 @@ function updateMonthButtonUI(pageId) {
 
 function switchPeriod(pageId, period) {
   currentPeriods[pageId] = period;
-  selectedMonths[pageId] = []; // 切換半年度時清除特定月份過濾，顯示全期
+  selectedMonths[pageId] = [];
   updateMonthButtonUI(pageId);
   updatePeriodButtonUI(pageId);
   if (pageData[pageId]) {
@@ -429,7 +428,6 @@ function loadData(pageId){
     });
 }
 
-// 抽取欄位中的數字（月份）
 function extractMonthNum(str) {
   if (!str) return null;
   const match = String(str).match(/\d+/);
@@ -466,22 +464,19 @@ function render(pageId, data){
   const isH1 = currentPeriods[pageId] === 'H1';
   const monthsFilter = selectedMonths[pageId] || [];
 
-  // 2. 月份過濾邏輯（能讀取上半與下半年對應欄位）
-  if (monthsFilter.length > 0) {
+  // 2. 月份過濾邏輯（車上台無月份按鈕，因此不受影響）
+  if (pageId !== "carPage" && monthsFilter.length > 0) {
     renderData = renderData.filter(r => {
       let planM = null, realM = null;
 
-      if (pageId === "carPage") {
-        realM = extractMonthNum(isH1 ? r[7] : r[9]);
-      } else if (pageId === "deskPage") {
-        planM = extractMonthNum(isH1 ? r[5] : r[9]);  // f(5) 或 j(9)
-        realM = extractMonthNum(isH1 ? r[7] : r[11]); // h(7) 或 l(11)
+      if (pageId === "deskPage") {
+        planM = extractMonthNum(isH1 ? r[5] : r[9]);
+        realM = extractMonthNum(isH1 ? r[7] : r[11]);
       } else { // 轉播站、隧道、路邊
-        planM = extractMonthNum(isH1 ? r[2] : r[6]);  // C(2) 或 G(6)
-        realM = extractMonthNum(isH1 ? r[4] : r[8]);  // E(4) 或 I(8)
+        planM = extractMonthNum(isH1 ? r[2] : r[6]);
+        realM = extractMonthNum(isH1 ? r[4] : r[8]);
       }
 
-      // 預定保養月份 或 實際保養月份 只要其中一個符合點選的月份即可
       return monthsFilter.includes(planM) || monthsFilter.includes(realM);
     });
   }
