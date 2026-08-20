@@ -383,13 +383,14 @@ function render(pageId, data){
   // 2. 渲染資料列
   data.forEach(r => {
 
-    /* 🚗 車上台 */
+  /* 🚗 車上台 */
     if (pageId === "carPage") {
       let carNo = getVal(r, "車輛號碼");
       let radio1 = getVal(r, "第一台") || getVal(r, "radio1");
       let radio2 = getVal(r, "第二台") || getVal(r, "radio2");
       let date = getVal(r, "定期保養日期") || getVal(r, "保養日期");
       let staff = getVal(r, "維護人員");
+      let note = getVal(r, "備註"); // 👈 1. 抓取 CSV 裡面的備註資料
 
       let done = date !== "";
       done ? ok++ : no++;
@@ -402,7 +403,7 @@ function render(pageId, data){
           <td class="${done ? 'ok' : 'no'}">${done ? '已保養' : '未保養'}</td>
           <td>${date || "-"}</td>
           <td>${staff || "-"}</td>
-          <td>-</td>
+          <td>${note || "-"}</td> <!-- 👈 2. 將原本的 "-" 替換為 ${note || "-"} -->
         </tr>
       `;
 
@@ -413,6 +414,7 @@ function render(pageId, data){
             <div class="${done ? 'ok' : 'no'}">${done ? '已保養' : '未保養'}</div>
             <div class="small">日期：${date || "-"}</div>
             <div class="small">人員：${staff || "-"}</div>
+            ${note ? `<div class="small">備註：${note}</div>` : ''} <!-- 👈 手機版卡片同步加上備註 -->
           </div>
         `;
       }
