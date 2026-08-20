@@ -317,29 +317,40 @@ function render(pageId, data){
     cardList.innerHTML = "";
   }
 
-  // 1. 補上計數變數宣告
   let ok = 0;
   let no = 0;
 
-  // 2. 資料排序邏輯
+  // 🛠️ 輔助函式：自動忽略標頭中的換行、空白、全半形差異
+  const getVal = (row, keyName) => {
+    if (!row) return "";
+    const cleanKey = keyName.replace(/\s+/g, "").toLowerCase();
+    for (let k in row) {
+      if (k.replace(/\s+/g, "").toLowerCase() === cleanKey) {
+        return (row[k] || "").trim();
+      }
+    }
+    return "";
+  };
+
+  // 1. 資料排序
   if (pageId === "carPage") {
     data.sort((a, b) => {
-      const aDone = (a["定期保養日期"] || "").trim() !== "";
-      const bDone = (b["定期保養日期"] || "").trim() !== "";
+      const aDone = getVal(a, "定期保養日期") !== "";
+      const bDone = getVal(b, "定期保養日期") !== "";
       if (aDone !== bDone) return aDone ? 1 : -1;
 
-      const aCar = (a["車輛號碼"] || "").trim();
-      const bCar = (b["車輛號碼"] || "").trim();
+      const aCar = getVal(a, "車輛號碼");
+      const bCar = getVal(b, "車輛號碼");
       return aCar.localeCompare(bCar);
     });
   } else {
     data.sort((a, b) => {
-      const aDone = (a["保養日期"] || "").trim() !== "";
-      const bDone = (b["保養日期"] || "").trim() !== "";
+      const aDone = getVal(a, "保養日期") !== "";
+      const bDone = getVal(b, "保養日期") !== "";
       if (aDone !== bDone) return aDone ? 1 : -1;
 
       const getMonth = (row) => {
-        let m = row["保養月份"] || row["實際保養月份"] || "";
+        let m = getVal(row, "保養月份") || getVal(row, "實際保養月份");
         const match = m.match(/\d+/);
         return match ? parseInt(match[0]) : 999;
       };
@@ -347,25 +358,29 @@ function render(pageId, data){
     });
   }
 
-  // 3. 補上 missing 的 data.forEach 迴圈開頭
+  // 2. 渲染資料
   data.forEach(r => {
 
     /* 🚗 車上台 */
     if (pageId === "carPage") {
 
-      let carNo = r["車輛號碼"] || "";
-      let done = (r["定期保養日期"] || "").trim() !== "";
+      let carNo = getVal(r, "車輛號碼");
+      let radio1 = getVal(r, "第一台RadioID");
+      let radio2 = getVal(r, "第二台RadioID");
+      let date = getVal(r, "定期保養日期");
+      let staff = getVal(r, "維護人員");
 
+      let done = date !== "";
       done ? ok++ : no++;
 
       tbody.innerHTML += `
         <tr>
-          <td>${carNo}</td>
-          <td>${r["第一台 Radio ID"] || ""}</td>
-          <td>${r["第二台 Radio ID"] || ""}</td>
+          <td>${carNo || "-"}</td>
+          <td>${radio1 || "-"}</td>
+          <td>${radio2 || "-"}</td>
           <td class="${done ? 'ok' : 'no'}">${done ? '已保養' : '未保養'}</td>
-          <td>${r["定期保養日期"] || "-"}</td>
-          <td>${r["維護人員"] || "-"}</td>
+          <td>${date || "-"}</td>
+          <td>${staff || "-"}</td>
           <td>-</td>
         </tr>
       `;
@@ -373,10 +388,10 @@ function render(pageId, data){
       if (cardList) {
         cardList.innerHTML += `
           <div class="card">
-            <div class="title">${carNo}</div>
+            <div class="title">${carNo || "未知車號"}</div>
             <div class="${done ? 'ok' : 'no'}">${done ? '已保養' : '未保養'}</div>
-            <div class="small">日期：${r["定期保養日期"] || "-"}</div>
-            <div class="small">人員：${r["維護人員"] || "-"}</div>
+            <div class="small">日期：${date || "-"}</div>
+            <div class="small">人員：${staff || "-"}</div>
           </div>
         `;
       }
@@ -386,21 +401,21 @@ function render(pageId, data){
     else if (pageId === "stationPage") {
       tbody.innerHTML += `
         <tr>
-          <td>${r["站台編號"]||""}</td>
-          <td>${r["站台名稱"]||""}</td>
-          <td>${r["保養月份"]||""}</td>
-          <td>${r["保養日期"]||"-"}</td>
-          <td>${r["維護人員"]||"-"}</td>
+          <td>${getVal(r, "站台編號")}</td>
+          <td>${getVal(r, "站台名稱")}</td>
+          <td>${getVal(r, "保養月份")}</td>
+          <td>${getVal(r, "保養日期") || "-"}</td>
+          <td>${getVal(r, "維護人員") || "-"}</td>
         </tr>
       `;
 
       if(cardList){
         cardList.innerHTML += `
           <div class="card">
-            <div class="title">${r["站台名稱"]||""}</div>
-            <div class="small">編號：${r["站台編號"]||""}</div>
-            <div class="small">月份：${r["保養月份"]||""}</div>
-            <div class="small">日期：${r["保養日期"]||"-"}</div>
+            <div class="title">${getVal(r, "站台名稱")}</div>
+            <div class="small">編號：${getVal(r, "站台編號")}</div>
+            <div class="small">月份：${getVal(r, "保養月份")}</div>
+            <div class="small">日期：${getVal(r, "保養日期") || "-"}</div>
           </div>
         `;
       }
@@ -410,23 +425,23 @@ function render(pageId, data){
     else if (pageId === "deskPage") {
       tbody.innerHTML += `
         <tr>
-          <td>${r["站台編號"]||""}</td>
-          <td>${r["站台名稱"]||""}</td>
-          <td>${r["無線電號碼"]||""}</td>
-          <td>${r["安裝位置"]||""}</td>
-          <td>${r["保養月份"]||""}</td>
-          <td>${r["保養日期"]||"-"}</td>
-          <td>${r["維護人員"]||"-"}</td>
+          <td>${getVal(r, "站台編號")}</td>
+          <td>${getVal(r, "站台名稱")}</td>
+          <td>${getVal(r, "無線電號碼")}</td>
+          <td>${getVal(r, "安裝位置")}</td>
+          <td>${getVal(r, "保養月份")}</td>
+          <td>${getVal(r, "保養日期") || "-"}</td>
+          <td>${getVal(r, "維護人員") || "-"}</td>
         </tr>
       `;
 
       if(cardList){
         cardList.innerHTML += `
           <div class="card">
-            <div class="title">${r["站台名稱"]||""}</div>
-            <div class="small">位置：${r["安裝位置"]||""}</div>
-            <div class="small">月份：${r["保養月份"]||""}</div>
-            <div class="small">日期：${r["保養日期"]||"-"}</div>
+            <div class="title">${getVal(r, "站台名稱")}</div>
+            <div class="small">位置：${getVal(r, "安裝位置")}</div>
+            <div class="small">月份：${getVal(r, "保養月份")}</div>
+            <div class="small">日期：${getVal(r, "保養日期") || "-"}</div>
           </div>
         `;
       }
@@ -436,27 +451,27 @@ function render(pageId, data){
     else {
       tbody.innerHTML += `
         <tr>
-          <td>${r["中繼站編號"]||""}</td>
-          <td>${r["站台/隧道名稱"]||""}</td>
-          <td>${r["保養月份"]||""}</td>
-          <td>${r["保養日期"]||"-"}</td>
-          <td>${r["維護人員"]||"-"}</td>
+          <td>${getVal(r, "中繼站編號")}</td>
+          <td>${getVal(r, "站台/隧道名稱")}</td>
+          <td>${getVal(r, "保養月份")}</td>
+          <td>${getVal(r, "保養日期") || "-"}</td>
+          <td>${getVal(r, "維護人員") || "-"}</td>
         </tr>
       `;
 
       if(cardList){
         cardList.innerHTML += `
           <div class="card">
-            <div class="title">${r["站台/隧道名稱"]||""}</div>
-            <div class="small">編號：${r["中繼站編號"]||""}</div>
-            <div class="small">月份：${r["保養月份"]||""}</div>
-            <div class="small">日期：${r["保養日期"]||"-"}</div>
+            <div class="title">${getVal(r, "站台/隧道名稱")}</div>
+            <div class="small">編號：${getVal(r, "中繼站編號")}</div>
+            <div class="small">月份：${getVal(r, "保養月份")}</div>
+            <div class="small">日期：${getVal(r, "保養日期") || "-"}</div>
           </div>
         `;
       }
     }
 
-  }); // 迴圈結束
+  });
 
   if(pageId === "carPage"){
     document.getElementById("carOkCount").innerText = ok;
