@@ -152,7 +152,7 @@ th { background: #f1f3f5; }
   <button onclick="showPage('carPage')">車上台</button>
 </div>
 
-<!-- 📡 1. 轉播站頁面 -->
+<!-- 📡 1. 轉播站頁面 (已移除搜尋) -->
 <div id="stationPage" class="page container">
   <h2>轉播站保養紀錄</h2>
   <div class="period-group">
@@ -160,7 +160,6 @@ th { background: #f1f3f5; }
     <button class="period-btn btn-h2" onclick="switchPeriod('stationPage', 'H2')">下半年度 (9~2月)</button>
   </div>
   <div id="stationPageMonths" class="month-group"></div>
-  <input type="text" class="search-box" placeholder="搜尋名稱或編號..." onkeyup="search('stationPage', this.value)">
   <div class="status-counter">
     未保養：<span id="stationPageNoCount" class="no">0</span> 站 | 
     已保養：<span id="stationPageOkCount" class="ok">0</span> 站
@@ -183,7 +182,7 @@ th { background: #f1f3f5; }
   <div id="stationPageCardList" class="card-list"></div>
 </div>
 
-<!-- 🖥 2. 桌上台頁面 -->
+<!-- 🖥 2. 桌上台頁面 (已移除搜尋) -->
 <div id="deskPage" class="page container">
   <h2>桌上台保養紀錄</h2>
   <div class="period-group">
@@ -191,7 +190,6 @@ th { background: #f1f3f5; }
     <button class="period-btn btn-h2" onclick="switchPeriod('deskPage', 'H2')">下半年度 (9~2月)</button>
   </div>
   <div id="deskPageMonths" class="month-group"></div>
-  <input type="text" class="search-box" placeholder="搜尋站名、管轄或編號..." onkeyup="search('deskPage', this.value)">
   <div class="status-counter">
     未保養：<span id="deskPageNoCount" class="no">0</span> 台 | 
     已保養：<span id="deskPageOkCount" class="ok">0</span> 台
@@ -216,7 +214,7 @@ th { background: #f1f3f5; }
   <div id="deskPageCardList" class="card-list"></div>
 </div>
 
-<!-- 🚇 3. 隧道頁面 -->
+<!-- 🚇 3. 隧道頁面 (已移除搜尋) -->
 <div id="tunnelPage" class="page container">
   <h2>隧道保養紀錄</h2>
   <div class="period-group">
@@ -224,7 +222,6 @@ th { background: #f1f3f5; }
     <button class="period-btn btn-h2" onclick="switchPeriod('tunnelPage', 'H2')">下半年度 (9~2月)</button>
   </div>
   <div id="tunnelPageMonths" class="month-group"></div>
-  <input type="text" class="search-box" placeholder="搜尋名稱或編號..." onkeyup="search('tunnelPage', this.value)">
   <div class="status-counter">
     未保養：<span id="tunnelPageNoCount" class="no">0</span> 處 | 
     已保養：<span id="tunnelPageOkCount" class="ok">0</span> 處
@@ -247,7 +244,7 @@ th { background: #f1f3f5; }
   <div id="tunnelPageCardList" class="card-list"></div>
 </div>
 
-<!-- 🛣 4. 路邊頁面 -->
+<!-- 🛣 4. 路邊頁面 (已移除搜尋) -->
 <div id="roadPage" class="page container">
   <h2>路邊保養紀錄</h2>
   <div class="period-group">
@@ -255,7 +252,6 @@ th { background: #f1f3f5; }
     <button class="period-btn btn-h2" onclick="switchPeriod('roadPage', 'H2')">下半年度 (9~2月)</button>
   </div>
   <div id="roadPageMonths" class="month-group"></div>
-  <input type="text" class="search-box" placeholder="搜尋名稱或編號..." onkeyup="search('roadPage', this.value)">
   <div class="status-counter">
     未保養：<span id="roadPageNoCount" class="no">0</span> 處 | 
     已保養：<span id="roadPageOkCount" class="ok">0</span> 處
@@ -278,7 +274,7 @@ th { background: #f1f3f5; }
   <div id="roadPageCardList" class="card-list"></div>
 </div>
 
-<!-- 🚗 5. 車上台頁面 -->
+<!-- 🚗 5. 車上台頁面 (僅此頁面保留搜尋框) -->
 <div id="carPage" class="page container">
   <h2>車上台保養紀錄</h2>
   <div class="period-group">
@@ -445,12 +441,11 @@ function render(pageId, data){
   updateMonthButtonUI(pageId);
   if (!Array.isArray(data)) return;
 
-  // 🎯 精準清理前 4 列標題與無用資料列
+  // 精準清理前 4 列標題與無用資料列
   let renderData = data.filter(r => {
     if (!r || !r.length) return false;
     const rowStr = r.join("").replace(/[\s\u3000]+/g, "");
     
-    // 排除試算表頂部的標題文字列與表頭
     if (rowStr.includes("臺北電務段") || 
         rowStr.includes("維護時程表") || 
         rowStr.includes("至115年") || 
@@ -464,7 +459,6 @@ function render(pageId, data){
       return false;
     }
     
-    // 確保第一欄或第二欄有實際內容（排除空白行）
     return (r[0] || "").trim() !== "" || (r[1] || "").trim() !== "";
   });
 
