@@ -278,7 +278,7 @@ th { background: #f1f3f5; }
   <div id="roadPageCardList" class="card-list"></div>
 </div>
 
-<!-- 🚗 5. 車上台頁面 (不包含月份按鈕) -->
+<!-- 🚗 5. 車上台頁面 -->
 <div id="carPage" class="page container">
   <h2>車上台保養紀錄</h2>
   <div class="period-group">
@@ -340,7 +340,6 @@ function monthUI(pageId){
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  // 只為有需要月份按鈕的頁面生成 UI（排除 carPage）
   ["stationPage", "deskPage", "tunnelPage", "roadPage"].forEach(p => {
     const el = document.getElementById(p + "Months");
     if (el) el.innerHTML = monthUI(p);
@@ -446,25 +445,33 @@ function render(pageId, data){
   updateMonthButtonUI(pageId);
   if (!Array.isArray(data)) return;
 
-  let renderData = [...data];
-
-  // 1. 自動過濾總計列與標頭列
-  const totalIndex = renderData.findIndex(r => {
-    if (!r) return false;
-    const rowStr = Array.isArray(r) ? r.join("") : Object.values(r).join("");
-    const cleanVal = rowStr.replace(/[\s\u3000]+/g, "");
-    return cleanVal.includes("總計") || cleanVal.includes("合計");
+  // 🎯 精準清理前 4 列標題與無用資料列
+  let renderData = data.filter(r => {
+    if (!r || !r.length) return false;
+    const rowStr = r.join("").replace(/[\s\u3000]+/g, "");
+    
+    // 排除試算表頂部的標題文字列與表頭
+    if (rowStr.includes("臺北電務段") || 
+        rowStr.includes("維護時程表") || 
+        rowStr.includes("至115年") || 
+        rowStr.includes("上半年") || 
+        rowStr.includes("下半年") || 
+        rowStr.includes("站台編號") || 
+        rowStr.includes("ABSNo") || 
+        rowStr.includes("車輛號碼") ||
+        rowStr.includes("總計") || 
+        rowStr.includes("合計")) {
+      return false;
+    }
+    
+    // 確保第一欄或第二欄有實際內容（排除空白行）
+    return (r[0] || "").trim() !== "" || (r[1] || "").trim() !== "";
   });
-  if (totalIndex !== -1) renderData = renderData.slice(0, totalIndex);
-
-  if (renderData.length > 0 && (String(renderData[0][0]).includes("站台") || String(renderData[0][0]).includes("ABS") || String(renderData[0][1]).includes("車輛"))) {
-    renderData = renderData.slice(1);
-  }
 
   const isH1 = currentPeriods[pageId] === 'H1';
   const monthsFilter = selectedMonths[pageId] || [];
 
-  // 2. 月份過濾邏輯（車上台無月份按鈕，因此不受影響）
+  // 月份過濾邏輯
   if (pageId !== "carPage" && monthsFilter.length > 0) {
     renderData = renderData.filter(r => {
       let planM = null, realM = null;
@@ -481,7 +488,7 @@ function render(pageId, data){
     });
   }
 
-  // 3. 排序：未保養(0) 在前，已保養(1) 在後
+  // 排序：未保養(0) 在前，已保養(1) 在後
   renderData.sort((a, b) => {
     let dateA = "", dateB = "";
     if (pageId === "carPage") {
