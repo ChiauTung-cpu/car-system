@@ -346,10 +346,18 @@ function render(pageId, data){
   let cardList = document.getElementById(pageId.replace("Page","CardList"));
   if(cardList) cardList.innerHTML = "";
 
+  // ✂️ 關鍵新增：只要遇到「總計」，就把「總計」以及後面的所有資料全部切掉不顯示
+  const totalIndex = data.findIndex(r => 
+    Object.values(r).some(val => String(val).includes("總計"))
+  );
+  if (totalIndex !== -1) {
+    data = data.slice(0, totalIndex);
+  }
+
   let ok = 0;
   let no = 0;
 
-  // 排序
+  // 1. 排序邏輯
   if (pageId === "carPage") {
     data.sort((a, b) => {
       const aDone = getVal(a, "定期保養日期") !== "";
@@ -372,7 +380,7 @@ function render(pageId, data){
     });
   }
 
-  // 渲染資料
+  // 2. 渲染資料列
   data.forEach(r => {
 
     /* 🚗 車上台 */
