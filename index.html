@@ -95,6 +95,15 @@ th { background: #f1f3f5; }
 
   .ok { color: green; }
   .no { color: red; }
+
+  .period-btn {
+  background: #7f8c8d;
+  color: white;
+}
+.period-btn.active {
+  background: #e67e22;
+  font-weight: bold;
+}
 }
 
 /* 月份按鈕 */
@@ -115,141 +124,15 @@ th { background: #f1f3f5; }
   <button onclick="showPage('carPage')">車上台</button>
 </div>
 
-<!-- 📡 共用月份 UI -->
-<script>
-function monthUI(page){
-  return `
-  <div class="month-group">
-    ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`
-      <button class="month-btn" 
-        onclick="toggleMonth('${page}', this, '${m}')">
-        ${m}月
-      </button>
-    `).join("")}
-  </div>`;
-}
-</script>
-
-<!-- 📡 轉播站 -->
-<div id="stationPage" class="page">
-  <div class="container">
-    <h2>📡 轉播站</h2>
-    <div id="stationMonths"></div>
-    <table>
-      <thead>
-        <tr>
-          <th>站台編號</th>
-          <th>站台名稱</th>
-          <th>保養月份</th>
-          <th>保養日期</th>
-          <th>維護人員</th>
-        </tr>
-      </thead>
-      <tbody id="stationPageBody"></tbody>
-    </table>
-    <div id="stationCardList"></div>
-  </div>
-</div>
-
-<!-- 🖥 桌上台 -->
-<div id="deskPage" class="page">
-  <div class="container">
-    <h2>🖥 桌上台</h2>
-    <div id="deskMonths"></div>
-    <table>
-      <thead>
-        <tr>
-          <th>站台編號</th>
-          <th>站台名稱</th>
-          <th>無線電號碼</th>
-          <th>安裝位置</th>
-          <th>保養月份</th>
-          <th>保養日期</th>
-          <th>維護人員</th>
-        </tr>
-      </thead>
-      <tbody id="deskPageBody"></tbody>
-    </table>
-    <div id="deskCardList"></div>
-  </div>
-</div>
-
-<!-- 🚇 隧道 -->
-<div id="tunnelPage" class="page">
-  <div class="container">
-    <h2>🚇 隧道</h2>
-    <div id="tunnelMonths"></div>
-    <table>
-      <thead>
-        <tr>
-          <th>中繼站編號</th>
-          <th>站台/隧道名稱</th>
-          <th>保養月份</th>
-          <th>保養日期</th>
-          <th>維護人員</th>
-        </tr>
-      </thead>
-      <tbody id="tunnelPageBody"></tbody>
-    </table>
-    <div id="tunnelCardList"></div>
-  </div>
-</div>
-
-<!-- 🛣 路邊 -->
-<div id="roadPage" class="page">
-  <div class="container">
-    <h2>🛣 路邊</h2>
-    <div id="roadMonths"></div>
-    <table>
-      <thead>
-        <tr>
-          <th>中繼站編號</th>
-          <th>站台/隧道名稱</th>
-          <th>保養月份</th>
-          <th>保養日期</th>
-          <th>維護人員</th>
-        </tr>
-      </thead>
-      <tbody id="roadPageBody"></tbody>
-    </table>
-    <div id="roadCardList"></div>
-  </div>
-</div>
-
-<!-- 🚗 車上台 -->
-<div id="carPage" class="page">
-  <div class="container">
-    <h2>🚗 車上台</h2>
-
-    已保養：<span id="carOkCount">0</span>　
-    未保養：<span id="carNoCount">0</span>
-
-    <br><br>
-    <input placeholder="輸入車號" oninput="search('carPage', this.value)">
-
-    <table>
-      <thead>
-        <tr>
-          <th>車輛號碼</th>
-          <th>RAIDO 1 ID</th>
-          <th>RAIDO 2 ID</th>
-          <th>狀態</th>
-          <th>保養日期</th>
-          <th>保養人員</th>
-          <th>備註</th>
-        </tr>
-      </thead>
-      <tbody id="carPageBody"></tbody>
-    </table>
-       <div id="carCardList"></div>
-  </div>
-</div>
-
+<!-- 📡 PapaParse 與完整腳本 -->
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <script>
 let pageData = {};
 let selectedMonths = {};
+
+// 🗓️ 車上台預設週期：2~8 月為 H1（上半年度），其餘為 H2（下半年度）
+let currentCarPeriod = (new Date().getMonth() + 1 >= 2 && new Date().getMonth() + 1 <= 8) ? 'H1' : 'H2';
 
 const urls = {
   stationPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=1360678314&single=true&output=csv",
@@ -271,7 +154,7 @@ function monthUI(page){
   </div>`;
 }
 
-// 初始化月份
+// 初始化月份按鈕
 ["station","desk","tunnel","road"].forEach(p=>{
   const el = document.getElementById(p+"Months");
   if(el) el.innerHTML = monthUI(p+"Page");
@@ -291,6 +174,31 @@ function toggleMonth(pageId, btn, month){
   filterMonthMulti(pageId);
 }
 
+// 切換車上台上半/下半年度
+function switchCarPeriod(period) {
+  currentCarPeriod = period;
+  updatePeriodButtonUI();
+  
+  if (pageData['carPage']) {
+    render('carPage', pageData['carPage']);
+  }
+}
+
+// 更新按鈕高亮樣式
+function updatePeriodButtonUI() {
+  const btnH1 = document.getElementById("btnH1");
+  const btnH2 = document.getElementById("btnH2");
+  if (!btnH1 || !btnH2) return;
+
+  if (currentCarPeriod === 'H1') {
+    btnH1.classList.add("active");
+    btnH2.classList.remove("active");
+  } else {
+    btnH2.classList.add("active");
+    btnH1.classList.remove("active");
+  }
+}
+
 function showPage(id){
   document.querySelectorAll(".page").forEach(p=>p.style.display="none");
   const target = document.getElementById(id);
@@ -300,33 +208,23 @@ function showPage(id){
   else render(id, pageData[id]);
 }
 
-// 🛠️ 關鍵修正：自動過濾開頭全空白逗號列的 loadData 函式
 function loadData(pageId){
-  console.log(`正在載入 ${pageId} 資料...`);
-  
   fetch(urls[pageId] + "&t=" + Date.now())
     .then(response => response.text())
     .then(rawCsv => {
-      // 移除開頭所有只有逗號與換行的空白列
       const cleanCsv = rawCsv.replace(/^[\s,]+\r?\n/g, '');
 
       Papa.parse(cleanCsv, {
-        header: true,
+        header: pageId !== "carPage", // 車上台改用純陣列解析（避免欄位名稱重複衝突）
         skipEmptyLines: true,
         complete: function(results) {
-          console.log(`${pageId} 載入成功，共 ${results.data.length} 筆資料`, results.data);
           pageData[pageId] = results.data;
           render(pageId, results.data);
-        },
-        error: function(err) {
-          console.error(`${pageId} 解析失敗:`, err);
         }
       });
-    })
-    .catch(err => console.error(`${pageId} 讀取失敗:`, err));
+    });
 }
 
-// 輔助函式：忽略標頭換行與空白
 function getVal(row, keyName) {
   if (!row) return "";
   const targetKey = keyName.replace(/\s+/g, "").toLowerCase();
@@ -346,51 +244,41 @@ function render(pageId, data){
   let cardList = document.getElementById(pageId.replace("Page","CardList"));
   if(cardList) cardList.innerHTML = "";
 
-  // ✂️ 關鍵新增：只要遇到「總計」，就把「總計」以及後面的所有資料全部切掉不顯示
-  const totalIndex = data.findIndex(r => 
-    Object.values(r).some(val => String(val).includes("總計"))
-  );
+  if (pageId === "carPage") {
+    updatePeriodButtonUI();
+  }
+
+  // 1. 自動過濾總計與後方車輛
+  const totalIndex = data.findIndex(r => {
+    const rowStr = Array.isArray(r) ? r.join("") : Object.values(r).join("");
+    const cleanVal = rowStr.replace(/[\s\u3000]+/g, "");
+    return cleanVal.includes("總計") || cleanVal.includes("合計");
+  });
+
   if (totalIndex !== -1) {
     data = data.slice(0, totalIndex);
+  }
+
+  // 2. 車上台過濾第1列標頭列
+  if (pageId === "carPage" && data.length > 0 && String(data[0][1]).includes("車輛號碼")) {
+    data = data.slice(1);
   }
 
   let ok = 0;
   let no = 0;
 
-  // 1. 排序邏輯
-  if (pageId === "carPage") {
-    data.sort((a, b) => {
-      const aDone = getVal(a, "定期保養日期") !== "";
-      const bDone = getVal(b, "定期保養日期") !== "";
-      if (aDone !== bDone) return aDone ? 1 : -1;
-      return getVal(a, "車輛號碼").localeCompare(getVal(b, "車輛號碼"));
-    });
-  } else {
-    data.sort((a, b) => {
-      const aDone = getVal(a, "保養日期") !== "";
-      const bDone = getVal(b, "保養日期") !== "";
-      if (aDone !== bDone) return aDone ? 1 : -1;
-
-      const getMonth = (row) => {
-        let m = getVal(row, "保養月份") || getVal(row, "實際保養月份");
-        const match = m.match(/\d+/);
-        return match ? parseInt(match[0]) : 999;
-      };
-      return getMonth(a) - getMonth(b);
-    });
-  }
-
-  // 2. 渲染資料列
   data.forEach(r => {
 
-  /* 🚗 車上台 */
+    /* 🚗 車上台 */
     if (pageId === "carPage") {
-      let carNo = getVal(r, "車輛號碼");
-      let radio1 = getVal(r, "第一台") || getVal(r, "radio1");
-      let radio2 = getVal(r, "第二台") || getVal(r, "radio2");
-      let date = getVal(r, "定期保養日期") || getVal(r, "保養日期");
-      let staff = getVal(r, "維護人員");
-      let note = getVal(r, "備註"); // 👈 1. 抓取 CSV 裡面的備註資料
+      let carNo = (r[1] || "").trim();      // B欄: 車輛號碼
+      let radio1 = (r[2] || "").trim();     // C欄: Radio 1
+      let radio2 = (r[4] || "").trim();     // E欄: Radio 2
+      let note = (r[11] || "").trim();      // L欄: 備註
+
+      const isH1 = currentCarPeriod === 'H1';
+      let date = isH1 ? (r[7] || "").trim() : (r[9] || "").trim();   // H1吃H(7)欄, H2吃J(9)欄
+      let staff = isH1 ? (r[8] || "").trim() : (r[10] || "").trim();  // H1吃I(8)欄, H2吃K(10)欄
 
       let done = date !== "";
       done ? ok++ : no++;
@@ -403,7 +291,7 @@ function render(pageId, data){
           <td class="${done ? 'ok' : 'no'}">${done ? '已保養' : '未保養'}</td>
           <td>${date || "-"}</td>
           <td>${staff || "-"}</td>
-          <td>${note || "-"}</td> <!-- 👈 2. 將原本的 "-" 替換為 ${note || "-"} -->
+          <td>${note || "-"}</td>
         </tr>
       `;
 
@@ -412,9 +300,10 @@ function render(pageId, data){
           <div class="card">
             <div class="title">${carNo || "未知車號"}</div>
             <div class="${done ? 'ok' : 'no'}">${done ? '已保養' : '未保養'}</div>
+            <div class="small">查閱：${isH1 ? '上半年度' : '下半年度'}</div>
             <div class="small">日期：${date || "-"}</div>
             <div class="small">人員：${staff || "-"}</div>
-            ${note ? `<div class="small">備註：${note}</div>` : ''} <!-- 👈 手機版卡片同步加上備註 -->
+            ${note ? `<div class="small">備註：${note}</div>` : ''}
           </div>
         `;
       }
@@ -431,17 +320,6 @@ function render(pageId, data){
           <td>${getVal(r, "維護人員") || "-"}</td>
         </tr>
       `;
-
-      if(cardList){
-        cardList.innerHTML += `
-          <div class="card">
-            <div class="title">${getVal(r, "站台名稱")}</div>
-            <div class="small">編號：${getVal(r, "站台編號")}</div>
-            <div class="small">月份：${getVal(r, "保養月份")}</div>
-            <div class="small">日期：${getVal(r, "保養日期") || "-"}</div>
-          </div>
-        `;
-      }
     }
 
     /* 🖥 桌上台 */
@@ -457,17 +335,6 @@ function render(pageId, data){
           <td>${getVal(r, "維護人員") || "-"}</td>
         </tr>
       `;
-
-      if(cardList){
-        cardList.innerHTML += `
-          <div class="card">
-            <div class="title">${getVal(r, "站台名稱")}</div>
-            <div class="small">位置：${getVal(r, "安裝位置")}</div>
-            <div class="small">月份：${getVal(r, "保養月份")}</div>
-            <div class="small">日期：${getVal(r, "保養日期") || "-"}</div>
-          </div>
-        `;
-      }
     }
 
     /* 🚇 + 🛣 */
@@ -481,17 +348,6 @@ function render(pageId, data){
           <td>${getVal(r, "維護人員") || "-"}</td>
         </tr>
       `;
-
-      if(cardList){
-        cardList.innerHTML += `
-          <div class="card">
-            <div class="title">${getVal(r, "站台/隧道名稱") || getVal(r, "站台名稱")}</div>
-            <div class="small">編號：${getVal(r, "中繼站編號")}</div>
-            <div class="small">月份：${getVal(r, "保養月份")}</div>
-            <div class="small">日期：${getVal(r, "保養日期") || "-"}</div>
-          </div>
-        `;
-      }
     }
   });
 
@@ -521,9 +377,15 @@ function filterMonthMulti(pageId){
 function search(pageId, k){
   k = k.toLowerCase().trim();
   const data = pageData[pageId] || [];
-  render(pageId, data.filter(r => getVal(r, "車輛號碼").toLowerCase().includes(k)));
+  
+  if(pageId === "carPage"){
+    render(pageId, data.filter(r => (r[1] || "").toLowerCase().includes(k)));
+  } else {
+    render(pageId, data.filter(r => getVal(r, "車輛號碼").toLowerCase().includes(k)));
+  }
 }
 
+// 進入頁面預設顯示車上台
 showPage("carPage");
 </script>
 
