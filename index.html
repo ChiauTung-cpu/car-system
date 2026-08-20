@@ -249,27 +249,7 @@ function monthUI(page){
 
 <script>
 let pageData = {};
-
 let selectedMonths = {};
-
-function toggleMonth(pageId, btn, month){
-
-  if(!selectedMonths[pageId]){
-    selectedMonths[pageId] = [];
-  }
-
-  let list = selectedMonths[pageId];
-
-  if(list.includes(month)){
-    list.splice(list.indexOf(month),1);
-    btn.classList.remove("active");
-  }else{
-    list.push(month);
-    btn.classList.add("active");
-  }
-
-  filterMonthMulti(pageId);
-}
 
 const urls = {
   stationPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=1360678314&single=true&output=csv",
@@ -279,69 +259,103 @@ const urls = {
   carPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=327091794&single=true&output=csv"
 };
 
-/* 初始化月份 */
+function monthUI(page){
+  return `
+  <div class="month-group">
+    ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`
+      <button class="month-btn" 
+        onclick="toggleMonth('${page}', this, '${m}')">
+        ${m}月
+      </button>
+    `).join("")}
+  </div>`;
+}
+
+// 初始化月份
 ["station","desk","tunnel","road"].forEach(p=>{
-  document.getElementById(p+"Months").innerHTML = monthUI(p+"Page");
+  const el = document.getElementById(p+"Months");
+  if(el) el.innerHTML = monthUI(p+"Page");
 });
+
+function toggleMonth(pageId, btn, month){
+  if(!selectedMonths[pageId]) selectedMonths[pageId] = [];
+  let list = selectedMonths[pageId];
+
+  if(list.includes(month)){
+    list.splice(list.indexOf(month),1);
+    btn.classList.remove("active");
+  }else{
+    list.push(month);
+    btn.classList.add("active");
+  }
+  filterMonthMulti(pageId);
+}
 
 function showPage(id){
   document.querySelectorAll(".page").forEach(p=>p.style.display="none");
-  document.getElementById(id).style.display="block";
+  const target = document.getElementById(id);
+  if(target) target.style.display="block";
 
   if(!pageData[id]) loadData(id);
-  else render(id,pageData[id]);
+  else render(id, pageData[id]);
 }
 
+// 🛠️ 關鍵修正：自動過濾開頭全空白逗號列的 loadData 函式
 function loadData(pageId){
-  fetch(urls[pageId]+"&t="+Date.now())
-    .then(r=>r.text())
-    .then(t=>{
-      Papa.parse(t,{
-        header:true,
-        skipEmptyLines:true,
-        complete:r=>{
-          pageData[pageId]=r.data;
-          render(pageId,r.data);
+  console.log(`正在載入 ${pageId} 資料...`);
+  
+  fetch(urls[pageId] + "&t=" + Date.now())
+    .then(response => response.text())
+    .then(rawCsv => {
+      // 移除開頭所有只有逗號與換行的空白列
+      const cleanCsv = rawCsv.replace(/^[\s,]+\r?\n/g, '');
+
+      Papa.parse(cleanCsv, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          console.log(`${pageId} 載入成功，共 ${results.data.length} 筆資料`, results.data);
+          pageData[pageId] = results.data;
+          render(pageId, results.data);
+        },
+        error: function(err) {
+          console.error(`${pageId} 解析失敗:`, err);
         }
       });
-    });
+    })
+    .catch(err => console.error(`${pageId} 讀取失敗:`, err));
+}
+
+// 輔助函式：忽略標頭換行與空白
+function getVal(row, keyName) {
+  if (!row) return "";
+  const targetKey = keyName.replace(/\s+/g, "").toLowerCase();
+  for (let k in row) {
+    if (k.replace(/\s+/g, "").toLowerCase().includes(targetKey)) {
+      return (row[k] || "").trim();
+    }
+  }
+  return "";
 }
 
 function render(pageId, data){
-
   const tbody = document.getElementById(pageId + "Body");
+  if(!tbody) return;
   tbody.innerHTML = "";
 
   let cardList = document.getElementById(pageId.replace("Page","CardList"));
-  if(cardList){
-    cardList.innerHTML = "";
-  }
+  if(cardList) cardList.innerHTML = "";
 
   let ok = 0;
   let no = 0;
 
-  // 🛠️ 輔助函式：自動忽略標頭中的換行、空白、全半形差異
-  const getVal = (row, keyName) => {
-    if (!row) return "";
-    const cleanKey = keyName.replace(/\s+/g, "").toLowerCase();
-    for (let k in row) {
-      if (k.replace(/\s+/g, "").toLowerCase() === cleanKey) {
-        return (row[k] || "").trim();
-      }
-    }
-    return "";
-  };
-
-  // 1. 資料排序
+  // 排序
   if (pageId === "carPage") {
     data.sort((a, b) => {
       const aDone = getVal(a, "定期保養日期") !== "";
       const bDone = getVal(b, "定期保養日期") !== "";
       if (aDone !== bDone) return aDone ? 1 : -1;
-
-      const aCar = getVal(a, "車輛號碼");
-      const bCar = getVal(b, "車輛號碼");
-      return aCar.localeCompare(bCar);
+      return getVal(a, "車輛號碼").localeCompare(getVal(b, "車輛號碼"));
     });
   } else {
     data.sort((a, b) => {
@@ -358,16 +372,15 @@ function render(pageId, data){
     });
   }
 
-  // 2. 渲染資料
+  // 渲染資料
   data.forEach(r => {
 
     /* 🚗 車上台 */
     if (pageId === "carPage") {
-
       let carNo = getVal(r, "車輛號碼");
-      let radio1 = getVal(r, "第一台RadioID");
-      let radio2 = getVal(r, "第二台RadioID");
-      let date = getVal(r, "定期保養日期");
+      let radio1 = getVal(r, "第一台") || getVal(r, "radio1");
+      let radio2 = getVal(r, "第二台") || getVal(r, "radio2");
+      let date = getVal(r, "定期保養日期") || getVal(r, "保養日期");
       let staff = getVal(r, "維護人員");
 
       let done = date !== "";
@@ -452,7 +465,7 @@ function render(pageId, data){
       tbody.innerHTML += `
         <tr>
           <td>${getVal(r, "中繼站編號")}</td>
-          <td>${getVal(r, "站台/隧道名稱")}</td>
+          <td>${getVal(r, "站台/隧道名稱") || getVal(r, "站台名稱")}</td>
           <td>${getVal(r, "保養月份")}</td>
           <td>${getVal(r, "保養日期") || "-"}</td>
           <td>${getVal(r, "維護人員") || "-"}</td>
@@ -462,7 +475,7 @@ function render(pageId, data){
       if(cardList){
         cardList.innerHTML += `
           <div class="card">
-            <div class="title">${getVal(r, "站台/隧道名稱")}</div>
+            <div class="title">${getVal(r, "站台/隧道名稱") || getVal(r, "站台名稱")}</div>
             <div class="small">編號：${getVal(r, "中繼站編號")}</div>
             <div class="small">月份：${getVal(r, "保養月份")}</div>
             <div class="small">日期：${getVal(r, "保養日期") || "-"}</div>
@@ -470,12 +483,13 @@ function render(pageId, data){
         `;
       }
     }
-
   });
 
   if(pageId === "carPage"){
-    document.getElementById("carOkCount").innerText = ok;
-    document.getElementById("carNoCount").innerText = no;
+    const okEl = document.getElementById("carOkCount");
+    const noEl = document.getElementById("carNoCount");
+    if(okEl) okEl.innerText = ok;
+    if(noEl) noEl.innerText = no;
   }
 }
 
@@ -483,25 +497,21 @@ function filterMonthMulti(pageId){
   const data = pageData[pageId] || [];
   const months = selectedMonths[pageId] || [];
 
-  if(!months.length){
-    return render(pageId,data);
-  }
+  if(!months.length) return render(pageId, data);
 
   const getMonth = (row)=>{
-    let m = row["保養月份"] || row["實際保養月份"] || "";
+    let m = getVal(row, "保養月份") || getVal(row, "實際保養月份");
     const match = m.match(/\d+/);
     return match ? match[0] : "";
   };
 
-  render(pageId, data.filter(r=>{
-    return months.includes(getMonth(r));
-  }));
+  render(pageId, data.filter(r => months.includes(getMonth(r))));
 }
 
-function search(pageId,k){
-  k=k.toLowerCase();
-  render(pageId,(pageData[pageId]||[])
-    .filter(r=>(r["車輛號碼"]||"").toLowerCase().includes(k)));
+function search(pageId, k){
+  k = k.toLowerCase().trim();
+  const data = pageData[pageId] || [];
+  render(pageId, data.filter(r => getVal(r, "車輛號碼").toLowerCase().includes(k)));
 }
 
 showPage("carPage");
