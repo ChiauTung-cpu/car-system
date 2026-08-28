@@ -402,7 +402,7 @@ function extractMonthNum(str) {
   return match ? parseInt(match[0], 10) : null;
 }
 
-function render(pageId, data){
+ function render(pageId, data){
   const tbody = document.getElementById(pageId + "Body");
   if(!tbody) return;
   tbody.innerHTML = "";
@@ -414,24 +414,28 @@ function render(pageId, data){
   updateMonthButtonUI(pageId);
   if (!Array.isArray(data)) return;
 
-  // 🧹 清理與過濾資料 (排除標題、表頭、空白列、總計/合計列)
+  // 🧹 清理與過濾資料 (嚴格排除空白列、標題列、無效列)
   let renderData = data.filter(r => {
     if (!r || !r.length) return false;
     
     const rowStr = r.join("").replace(/[\s\u3000]+/g, ""); // 去除所有空白字元
-    
-    // 排除完全空白的列
     if (!rowStr) return false;
 
-    // 排除無效標題列與總計列
+    // 排除標題列與總計列
     const ignoreKeywords = ["臺北電務段", "維護時程表", "站台編號", "ABSNo", "車輛號碼", "總計", "合計", "TOTAL", "Total"];
     for (let kw of ignoreKeywords) {
       if (rowStr.includes(kw)) return false;
     }
 
-    // 確保關鍵欄位（A欄編號或B欄名稱）真的有文字
     const colA = (r[0] || "").trim();
     const colB = (r[1] || "").trim();
+
+    // 🎯 【關鍵修正】針對車上台：B欄(車輛號碼)必須要有內容，否則視為無效空白格
+    if (pageId === "carPage") {
+      return colB !== "";
+    }
+
+    // 其他頁面：A欄或B欄有內容即可
     return colA !== "" || colB !== "";
   });
 
@@ -457,10 +461,11 @@ function render(pageId, data){
 
   renderData.forEach(r => {
     if (!r) return;
-    let idCode = (r[0] || r[1] || "").trim();
 
     if (pageId === "carPage") {
-      idCode = (r[1] || "").trim();
+      let idCode = (r[1] || "").trim(); // 車輛號碼 (B欄)
+      if (!idCode) return; // 雙重保護：若無車號則不渲染
+
       let radio1 = (r[2] || "").trim();
       let radio2 = (r[4] || "").trim();
       let note = (r[11] || "").trim();
