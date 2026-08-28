@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>北區保養查詢系統</title>
+<title>北區保養查詢與即時登記系統</title>
 
 <style>
 body {
@@ -38,19 +38,37 @@ button:hover { background: #2980b9; }
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
 
+.month-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.month-btn {
+  background: #95a5a6;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.month-btn.active {
+  background: #e67e22;
+  font-weight: bold;
+}
+
 .period-group { margin-bottom: 15px; }
 
 .period-btn { background: #7f8c8d; color: white; }
 .period-btn.active { background: #27ae60; font-weight: bold; }
 
 .search-box {
-  padding: 10px 12px;
+  padding: 8px 12px;
   margin-bottom: 15px;
-  width: 90%;
-  max-width: 320px;
+  width: 80%;
+  max-width: 300px;
   border: 1px solid #ccc;
   border-radius: 6px;
-  font-size: 16px;
 }
 
 .user-box {
@@ -69,7 +87,7 @@ button:hover { background: #2980b9; }
   padding: 6px 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  width: 100px;
+  width: 120px;
 }
 
 .status-counter { margin: 10px 0; font-size: 15px; }
@@ -83,7 +101,7 @@ th { background: #f1f3f5; }
 
 .card-list { display: none; }
 
-/* 📱 手機版最佳化卡片 */
+/* 📱 手機版 RWD 卡片 */
 @media (max-width: 600px) {
   table { display: none; }
   .card-list { display: block; }
@@ -102,16 +120,8 @@ th { background: #f1f3f5; }
   }
 
   .card-info { flex-grow: 1; }
-  .title { font-weight: bold; font-size: 18px; margin-bottom: 4px; color: #2c3e50; }
+  .title { font-weight: bold; font-size: 17px; margin-bottom: 4px; color: #2c3e50; }
   .small { font-size: 13px; color: #666; margin-top: 3px; }
-
-  /* 勾選按鈕風格 */
-  .check-action {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-left: 10px;
-  }
 
   .check-btn {
     background: #e74c3c;
@@ -122,11 +132,10 @@ th { background: #f1f3f5; }
     font-size: 13px;
     font-weight: bold;
     cursor: pointer;
+    white-space: nowrap;
   }
 
-  .check-btn.done {
-    background: #2ecc71;
-  }
+  .check-btn.done { background: #2ecc71; }
 }
 </style>
 </head>
@@ -142,39 +151,129 @@ th { background: #f1f3f5; }
   <button onclick="showPage('carPage')">車上台</button>
 </div>
 
+<!-- 📡 1. 轉播站頁面 -->
+<div id="stationPage" class="page container">
+  <h2>轉播站保養紀錄</h2>
+  <div class="user-box">
+    <label>保養人員：</label>
+    <input type="text" class="globalStaffInput" placeholder="輸入姓名" onchange="saveStaffName(this.value)">
+  </div>
+  <div class="period-group">
+    <button class="period-btn btn-h1" onclick="switchPeriod('stationPage', 'H1')">上半年度 (3~8月)</button>
+    <button class="period-btn btn-h2" onclick="switchPeriod('stationPage', 'H2')">下半年度 (9~2月)</button>
+  </div>
+  <div id="stationPageMonths" class="month-group"></div>
+  <div class="status-counter">
+    未保養：<span id="stationPageNoCount" class="no">0</span> 站 | 已保養：<span id="stationPageOkCount" class="ok">0</span> 站
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>站台編號</th><th>站台名稱</th><th>預定月份</th><th>預定週次</th><th>保養狀態</th><th>實際保養日期</th><th>維護人員</th><th>備註</th><th>動作</th>
+      </tr>
+    </thead>
+    <tbody id="stationPageBody"></tbody>
+  </table>
+  <div id="stationPageCardList" class="card-list"></div>
+</div>
+
+<!-- 🖥 2. 桌上台頁面 -->
+<div id="deskPage" class="page container">
+  <h2>桌上台保養紀錄</h2>
+  <div class="user-box">
+    <label>保養人員：</label>
+    <input type="text" class="globalStaffInput" placeholder="輸入姓名" onchange="saveStaffName(this.value)">
+  </div>
+  <div class="period-group">
+    <button class="period-btn btn-h1" onclick="switchPeriod('deskPage', 'H1')">上半年度 (3~8月)</button>
+    <button class="period-btn btn-h2" onclick="switchPeriod('deskPage', 'H2')">下半年度 (9~2月)</button>
+  </div>
+  <div id="deskPageMonths" class="month-group"></div>
+  <div class="status-counter">
+    未保養：<span id="deskPageNoCount" class="no">0</span> 台 | 已保養：<span id="deskPageOkCount" class="ok">0</span> 台
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>ABS No.</th><th>站名</th><th>管轄分駐所</th><th>無線電號碼</th><th>安裝位置</th><th>預定月份</th><th>預定週次</th><th>保養狀態</th><th>實際保養日期</th><th>維護人員</th><th>動作</th>
+      </tr>
+    </thead>
+    <tbody id="deskPageBody"></tbody>
+  </table>
+  <div id="deskPageCardList" class="card-list"></div>
+</div>
+
+<!-- 🚇 3. 隧道頁面 -->
+<div id="tunnelPage" class="page container">
+  <h2>隧道保養紀錄</h2>
+  <div class="user-box">
+    <label>保養人員：</label>
+    <input type="text" class="globalStaffInput" placeholder="輸入姓名" onchange="saveStaffName(this.value)">
+  </div>
+  <div class="period-group">
+    <button class="period-btn btn-h1" onclick="switchPeriod('tunnelPage', 'H1')">上半年度 (3~8月)</button>
+    <button class="period-btn btn-h2" onclick="switchPeriod('tunnelPage', 'H2')">下半年度 (9~2月)</button>
+  </div>
+  <div id="tunnelPageMonths" class="month-group"></div>
+  <div class="status-counter">
+    未保養：<span id="tunnelPageNoCount" class="no">0</span> 處 | 已保養：<span id="tunnelPageOkCount" class="ok">0</span> 處
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>站台編號</th><th>站台名稱</th><th>預定月份</th><th>預定週次</th><th>保養狀態</th><th>實際保養日期</th><th>維護人員</th><th>備註</th><th>動作</th>
+      </tr>
+    </thead>
+    <tbody id="tunnelPageBody"></tbody>
+  </table>
+  <div id="tunnelPageCardList" class="card-list"></div>
+</div>
+
+<!-- 🛣 4. 路邊頁面 -->
+<div id="roadPage" class="page container">
+  <h2>路邊保養紀錄</h2>
+  <div class="user-box">
+    <label>保養人員：</label>
+    <input type="text" class="globalStaffInput" placeholder="輸入姓名" onchange="saveStaffName(this.value)">
+  </div>
+  <div class="period-group">
+    <button class="period-btn btn-h1" onclick="switchPeriod('roadPage', 'H1')">上半年度 (3~8月)</button>
+    <button class="period-btn btn-h2" onclick="switchPeriod('roadPage', 'H2')">下半年度 (9~2月)</button>
+  </div>
+  <div id="roadPageMonths" class="month-group"></div>
+  <div class="status-counter">
+    未保養：<span id="roadPageNoCount" class="no">0</span> 處 | 已保養：<span id="roadPageOkCount" class="ok">0</span> 處
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>站台編號</th><th>站台名稱</th><th>預定月份</th><th>預定週次</th><th>保養狀態</th><th>實際保養日期</th><th>維護人員</th><th>備註</th><th>動作</th>
+      </tr>
+    </thead>
+    <tbody id="roadPageBody"></tbody>
+  </table>
+  <div id="roadPageCardList" class="card-list"></div>
+</div>
+
 <!-- 🚗 5. 車上台頁面 -->
 <div id="carPage" class="page container">
   <h2>車上台保養紀錄</h2>
-
-  <!-- 同仁姓名預設輸入 -->
   <div class="user-box">
-    <label for="staffName">保養人員：</label>
-    <input type="text" id="staffName" placeholder="輸入姓名" value="" onchange="saveStaffName(this.value)">
-    <span style="font-size: 12px; color: #7f8c8d;">(勾選時自動帶入)</span>
+    <label>保養人員：</label>
+    <input type="text" class="globalStaffInput" placeholder="輸入姓名" onchange="saveStaffName(this.value)">
   </div>
-
   <div class="period-group">
     <button class="period-btn btn-h1" onclick="switchPeriod('carPage', 'H1')">上半年度 (3~8月)</button>
     <button class="period-btn btn-h2" onclick="switchPeriod('carPage', 'H2')">下半年度 (9~2月)</button>
   </div>
-  
   <input type="text" class="search-box" placeholder="搜尋車號..." onkeyup="search('carPage', this.value)">
-  
   <div class="status-counter">
-    未保養：<span id="carPageNoCount" class="no">0</span> 輛 | 
-    已保養：<span id="carPageOkCount" class="ok">0</span> 輛
+    未保養：<span id="carPageNoCount" class="no">0</span> 輛 | 已保養：<span id="carPageOkCount" class="ok">0</span> 輛
   </div>
-
   <table>
     <thead>
       <tr>
-        <th>車輛號碼</th>
-        <th>Radio 1</th>
-        <th>Radio 2</th>
-        <th>保養狀態</th>
-        <th>保養日期</th>
-        <th>保養人員</th>
-        <th>動作</th>
+        <th>車輛號碼</th><th>Radio 1</th><th>Radio 2</th><th>保養狀態</th><th>保養日期</th><th>保養人員</th><th>備註</th><th>動作</th>
       </tr>
     </thead>
     <tbody id="carPageBody"></tbody>
@@ -182,51 +281,105 @@ th { background: #f1f3f5; }
   <div id="carPageCardList" class="card-list"></div>
 </div>
 
-<!-- 其他頁面省略展示但保留功能 -->
-<div id="stationPage" class="page container"><h2>轉播站保養紀錄</h2></div>
-<div id="deskPage" class="page container"><h2>桌上台保養紀錄</h2></div>
-<div id="tunnelPage" class="page container"><h2>隧道保養紀錄</h2></div>
-<div id="roadPage" class="page container"><h2>路邊保養紀錄</h2></div>
-
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <script>
-// ⚠️ 請將下方的網址替換成你在 Google Apps Script 部署獲得的 Web App URL ⚠️
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxCpUAclAsDvJwazKFomsbqvjLJKD9-GO9ZfaIdECOzwFWMg5Z0lXs1qtRInJNH65fVGQ/exec"; 
+// ⚠️ 請填入你在 Google Apps Script 部署獲得的完整 URL ⚠️
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxCpUAclAsDvJwazKFomsbqvjLJKD9-GO9ZfaIdECOzwFWMg5Z0lXs1qtRInJNH65fVGQ/exec";
 
 let pageData = {};
-let currentPeriods = { carPage: (new Date().getMonth() + 1 >= 3 && new Date().getMonth() + 1 <= 8) ? 'H1' : 'H2' };
+let currentPeriods = {};
+let selectedMonths = {};
+
+const currentMonth = new Date().getMonth() + 1;
+const defaultPeriod = (currentMonth >= 3 && currentMonth <= 8) ? 'H1' : 'H2';
+const pageIds = ["stationPage", "deskPage", "tunnelPage", "roadPage", "carPage"];
+
+pageIds.forEach(p => {
+  currentPeriods[p] = defaultPeriod;
+  selectedMonths[p] = [];
+});
 
 const urls = {
+  stationPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=1360678314&single=true&output=csv",
+  deskPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=727273350&single=true&output=csv",
+  tunnelPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=260259093&single=true&output=csv",
+  roadPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=1366752685&single=true&output=csv",
   carPage: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ3uHor4OrU-UeJn83mwQ2HOis4iVD_-6Ia8QNbPtrirGep1KSfdz6f78ZUelaN9P5K0WRxdjgI59a1/pub?gid=327091794&single=true&output=csv"
 };
 
+function monthUI(pageId){
+  return [1,2,3,4,5,6,7,8,9,10,11,12].map(m => `
+    <button class="month-btn" id="${pageId}_m_${m}" onclick="toggleMonth('${pageId}', ${m})">${m}月</button>
+  `).join("");
+}
+
 window.addEventListener("DOMContentLoaded", () => {
-  // 自動載入預存的保養人姓名
+  ["stationPage", "deskPage", "tunnelPage", "roadPage"].forEach(p => {
+    const el = document.getElementById(p + "Months");
+    if (el) el.innerHTML = monthUI(p);
+  });
+
   const savedStaff = localStorage.getItem("staffName") || "";
-  document.getElementById("staffName").value = savedStaff;
+  document.querySelectorAll(".globalStaffInput").forEach(input => input.value = savedStaff);
+  
   showPage("carPage");
 });
 
 function saveStaffName(val) {
-  localStorage.setItem("staffName", val.trim());
+  const cleanVal = val.trim();
+  localStorage.setItem("staffName", cleanVal);
+  document.querySelectorAll(".globalStaffInput").forEach(input => input.value = cleanVal);
 }
 
-function showPage(id) {
-  document.querySelectorAll(".page").forEach(p => p.style.display = "none");
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p => p.style.display="none");
   const target = document.getElementById(id);
-  if (target) target.style.display = "block";
+  if(target) target.style.display="block";
 
-  if (!pageData[id]) loadData(id);
+  if(!pageData[id]) loadData(id);
   else render(id, pageData[id]);
+}
+
+function toggleMonth(pageId, month){
+  let list = selectedMonths[pageId];
+  const idx = list.indexOf(month);
+  if (idx > -1) list.splice(idx, 1);
+  else {
+    list.push(month);
+    currentPeriods[pageId] = (month >= 3 && month <= 8) ? 'H1' : 'H2';
+  }
+  updateMonthButtonUI(pageId);
+  updatePeriodButtonUI(pageId);
+  if (pageData[pageId]) render(pageId, pageData[pageId]);
+}
+
+function updateMonthButtonUI(pageId) {
+  const list = selectedMonths[pageId] || [];
+  for (let m = 1; m <= 12; m++) {
+    const btn = document.getElementById(`${pageId}_m_${m}`);
+    if (btn) btn.classList.toggle("active", list.includes(m));
+  }
 }
 
 function switchPeriod(pageId, period) {
   currentPeriods[pageId] = period;
+  selectedMonths[pageId] = [];
+  updateMonthButtonUI(pageId);
+  updatePeriodButtonUI(pageId);
   if (pageData[pageId]) render(pageId, pageData[pageId]);
 }
 
-function loadData(pageId) {
+function updatePeriodButtonUI(pageId) {
+  const container = document.getElementById(pageId);
+  if (!container) return;
+  const btnH1 = container.querySelector(".btn-h1");
+  const btnH2 = container.querySelector(".btn-h2");
+  if (btnH1) btnH1.classList.toggle("active", currentPeriods[pageId] === 'H1');
+  if (btnH2) btnH2.classList.toggle("active", currentPeriods[pageId] === 'H2');
+}
+
+function loadData(pageId){
   if (!urls[pageId]) return;
   fetch(urls[pageId] + "&t=" + Date.now())
     .then(res => res.text())
@@ -243,119 +396,199 @@ function loadData(pageId) {
     });
 }
 
-function render(pageId, data) {
-  if (pageId !== "carPage") return;
-  const tbody = document.getElementById("carPageBody");
-  const cardList = document.getElementById("carPageCardList");
-  tbody.innerHTML = "";
-  cardList.innerHTML = "";
+function extractMonthNum(str) {
+  if (!str) return null;
+  const match = String(str).match(/\d+/);
+  return match ? parseInt(match[0], 10) : null;
+}
 
-  const isH1 = currentPeriods[pageId] === 'H1';
+function render(pageId, data){
+  const tbody = document.getElementById(pageId + "Body");
+  if(!tbody) return;
+  tbody.innerHTML = "";
+
+  let cardList = document.getElementById(pageId + "CardList");
+  if(cardList) cardList.innerHTML = "";
+
+  updatePeriodButtonUI(pageId);
+  updateMonthButtonUI(pageId);
+  if (!Array.isArray(data)) return;
 
   let renderData = data.filter(r => {
     if (!r || !r.length) return false;
     const rowStr = r.join("").replace(/[\s\u3000]+/g, "");
-    if (rowStr.includes("臺北電務段") || rowStr.includes("維護時程表") || rowStr.includes("車輛號碼")) return false;
-    return (r[1] || "").trim() !== "";
+    if (rowStr.includes("臺北電務段") || rowStr.includes("維護時程表") || rowStr.includes("站台編號") || rowStr.includes("ABSNo") || rowStr.includes("車輛號碼")) return false;
+    return (r[0] || "").trim() !== "" || (r[1] || "").trim() !== "";
   });
 
-  // 未保養排前面
+  const isH1 = currentPeriods[pageId] === 'H1';
+  const monthsFilter = selectedMonths[pageId] || [];
+
+  if (pageId !== "carPage" && monthsFilter.length > 0) {
+    renderData = renderData.filter(r => {
+      let planM = extractMonthNum(pageId === "deskPage" ? (isH1 ? r[5] : r[9]) : (isH1 ? r[2] : r[6]));
+      let realM = extractMonthNum(pageId === "deskPage" ? (isH1 ? r[7] : r[11]) : (isH1 ? r[4] : r[8]));
+      return monthsFilter.includes(planM) || monthsFilter.includes(realM);
+    });
+  }
+
+  // 未保養在前面
   renderData.sort((a, b) => {
-    let dateA = isH1 ? (a[7] || "").trim() : (a[9] || "").trim();
-    let dateB = isH1 ? (b[7] || "").trim() : (b[9] || "").trim();
-    return (dateA !== "" ? 1 : 0) - (dateB !== "" ? 1 : 0);
+    let dateA = pageId === "carPage" ? (isH1 ? a[7] : a[9]) : (pageId === "deskPage" ? (isH1 ? a[7] : a[11]) : (isH1 ? a[4] : a[8]));
+    let dateB = pageId === "carPage" ? (isH1 ? b[7] : b[9]) : (pageId === "deskPage" ? (isH1 ? b[7] : b[11]) : (isH1 ? b[4] : b[8]));
+    return ((dateA || "").trim() !== "" ? 1 : 0) - ((dateB || "").trim() !== "" ? 1 : 0);
   });
 
   let ok = 0, no = 0;
 
   renderData.forEach(r => {
-    let carNo = (r[1] || "").trim();
-    let radio1 = (r[2] || "").trim();
-    let radio2 = (r[4] || "").trim();
-    let date = isH1 ? (r[7] || "").trim() : (r[9] || "").trim();
-    let staff = isH1 ? (r[8] || "").trim() : (r[10] || "").trim();
-    let done = date !== "";
+    if (!r) return;
+    let idCode = (r[0] || r[1] || "").trim(); // 唯一識別 Key
 
-    done ? ok++ : no++;
+    if (pageId === "carPage") {
+      idCode = (r[1] || "").trim(); // 車號
+      let radio1 = (r[2] || "").trim();
+      let radio2 = (r[4] || "").trim();
+      let note = (r[11] || "").trim();
+      let date = isH1 ? (r[7] || "").trim() : (r[9] || "").trim();
+      let staff = isH1 ? (r[8] || "").trim() : (r[10] || "").trim();
+      let done = date !== "";
+      done ? ok++ : no++;
 
-    // 電腦版表格
-    tbody.innerHTML += `
-      <tr>
-        <td>${carNo}</td>
-        <td>${radio1}</td>
-        <td>${radio2}</td>
-        <td class="${done ? 'ok' : 'no'}">${done ? '已保養' : '未保養'}</td>
-        <td>${date || "-"}</td>
-        <td>${staff || "-"}</td>
-        <td>
-          ${!done ? `<button onclick="submitMaintenance('${carNo}')">標記保養</button>` : '✓'}
-        </td>
-      </tr>`;
+      tbody.innerHTML += `
+        <tr>
+          <td>${idCode}</td><td>${radio1}</td><td>${radio2}</td>
+          <td class="${done ? 'ok' : 'no'}">${done ? '已保養' : '未保養'}</td>
+          <td>${date || "-"}</td><td>${staff || "-"}</td><td>${note || "-"}</td>
+          <td>${!done ? `<button onclick="submitMaintenance('${pageId}', '${idCode}')">保養</button>` : '✓'}</td>
+        </tr>`;
 
-    // 手機版卡片
-    cardList.innerHTML += `
-      <div class="card">
-        <div class="card-info">
-          <div class="title">${carNo}</div>
-          <div class="small">Radio: ${radio1} / ${radio2}</div>
-          <div class="small ${done ? 'ok' : 'no'}">${done ? '已保養 (' + date + ' - ' + staff + ')' : '未保養'}</div>
-        </div>
-        <div class="check-action">
-          <button class="check-btn ${done ? 'done' : ''}" onclick="submitMaintenance('${carNo}')">
-            ${done ? '已完成' : '點擊保養'}
-          </button>
-        </div>
-      </div>`;
+      if (cardList) {
+        cardList.innerHTML += `
+          <div class="card">
+            <div class="card-info">
+              <div class="title">${idCode}</div>
+              <div class="small">Radio: ${radio1} / ${radio2}</div>
+              <div class="small ${done ? 'ok' : 'no'}">${done ? '已保養 (' + date + ' - ' + staff + ')' : '未保養'}</div>
+            </div>
+            <button class="check-btn ${done ? 'done' : ''}" onclick="submitMaintenance('${pageId}', '${idCode}')">${done ? '已完成' : '點擊保養'}</button>
+          </div>`;
+      }
+    } 
+    else if (pageId === "deskPage") {
+      let absNo = (r[0] || "").trim();
+      let name = (r[1] || "").trim();
+      let dept = (r[2] || "").trim();
+      let radio = (r[3] || "").trim();
+      let pos = (r[4] || "").trim();
+      let planMonth = isH1 ? (r[5] || "").trim() : (r[9] || "").trim();
+      let planWeek = isH1 ? (r[6] || "").trim() : (r[10] || "").trim();
+      let realDate = isH1 ? (r[7] || "").trim() : (r[11] || "").trim();
+      let staff = isH1 ? (r[8] || "").trim() : (r[12] || "").trim();
+      let done = realDate !== "";
+      done ? ok++ : no++;
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${absNo}</td><td>${name}</td><td>${dept}</td><td>${radio}</td><td>${pos}</td>
+          <td>${planMonth}</td><td>${planWeek}</td>
+          <td class="${done ? 'ok' : 'no'}">${done ? '已保養' : '未保養'}</td>
+          <td>${realDate || "-"}</td><td>${staff || "-"}</td>
+          <td>${!done ? `<button onclick="submitMaintenance('${pageId}', '${absNo || name}')">保養</button>` : '✓'}</td>
+        </tr>`;
+
+      if (cardList) {
+        cardList.innerHTML += `
+          <div class="card">
+            <div class="card-info">
+              <div class="title">${name} (${absNo})</div>
+              <div class="small">${dept} - ${pos}</div>
+              <div class="small ${done ? 'ok' : 'no'}">${done ? '已保養 (' + realDate + ' - ' + staff + ')' : '未保養'}</div>
+            </div>
+            <button class="check-btn ${done ? 'done' : ''}" onclick="submitMaintenance('${pageId}', '${absNo || name}')">${done ? '已完成' : '點擊保養'}</button>
+          </div>`;
+      }
+    } 
+    else { // 轉播站、隧道、路邊
+      let code = (r[0] || "").trim();
+      let name = (r[1] || "").trim();
+      let note = (r[10] || "").trim();
+      let planMonth = isH1 ? (r[2] || "").trim() : (r[6] || "").trim();
+      let planWeek = isH1 ? (r[3] || "").trim() : (r[7] || "").trim();
+      let realDate = isH1 ? (r[4] || "").trim() : (r[8] || "").trim();
+      let staff = isH1 ? (r[5] || "").trim() : (r[9] || "").trim();
+      let done = realDate !== "";
+      done ? ok++ : no++;
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${code}</td><td>${name}</td><td>${planMonth}</td><td>${planWeek}</td>
+          <td class="${done ? 'ok' : 'no'}">${done ? '已保養' : '未保養'}</td>
+          <td>${realDate || "-"}</td><td>${staff || "-"}</td><td>${note || "-"}</td>
+          <td>${!done ? `<button onclick="submitMaintenance('${pageId}', '${code || name}')">保養</button>` : '✓'}</td>
+        </tr>`;
+
+      if (cardList) {
+        cardList.innerHTML += `
+          <div class="card">
+            <div class="card-info">
+              <div class="title">${name} (${code})</div>
+              <div class="small">預定：${planMonth}月 (${planWeek})</div>
+              <div class="small ${done ? 'ok' : 'no'}">${done ? '已保養 (' + realDate + ' - ' + staff + ')' : '未保養'}</div>
+            </div>
+            <button class="check-btn ${done ? 'done' : ''}" onclick="submitMaintenance('${pageId}', '${code || name}')">${done ? '已完成' : '點擊保養'}</button>
+          </div>`;
+      }
+    }
   });
 
-  document.getElementById("carPageOkCount").innerText = ok;
-  document.getElementById("carPageNoCount").innerText = no;
+  document.getElementById(pageId + "OkCount").innerText = ok;
+  document.getElementById(pageId + "NoCount").innerText = no;
 }
 
-// 🚀 勾選並同步上傳至 Google 試算表
-function submitMaintenance(carNo) {
-  const staffInput = document.getElementById("staffName").value.trim();
+// 🚀 核心：同步更新回 Google 試算表
+function submitMaintenance(pageId, idCode) {
+  const staffInput = localStorage.getItem("staffName") || "";
   if (!staffInput) {
     alert("請先在上方輸入【保養人員姓名】！");
     return;
   }
 
-  // 自動取得今日日期 (格式：YYYY.MM.DD)
+  // 自動生成今日日期格式 (YYYY.MM.DD)
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   const todayStr = `${year}.${month}.${day}`;
 
-  if (!confirm(`確定將車號 [${carNo}] 標記為今日 (${todayStr}) 已保養？\n保養人：${staffInput}`)) {
+  if (!confirm(`確定將 [${idCode}] 標記為今日 (${todayStr}) 已保養？\n保養人員：${staffInput}`)) {
     return;
   }
 
   const payload = {
-    carNo: carNo,
-    period: currentPeriods["carPage"],
+    pageId: pageId,
+    idCode: idCode,
+    period: currentPeriods[pageId],
     date: todayStr,
     staff: staffInput
   };
 
-  // 發送 POST 請求給 GAS
   fetch(GAS_API_URL, {
     method: "POST",
-    mode: "no-cors", // 跨域安全設定
+    mode: "no-cors",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   })
   .then(() => {
-    alert("✅ 上傳成功！系統將自動重新整理。");
-    // 重新載入最新資料
-    loadData("carPage");
+    alert("✅ 登記成功！資料已同步上傳至 Google 試算表。");
+    loadData(pageId);
   })
   .catch(err => {
     alert("❌ 上傳失敗，請檢查網路狀態：" + err);
   });
 }
 
-function search(pageId, k) {
+function search(pageId, k){
   k = k.toLowerCase().trim();
   const data = pageData[pageId] || [];
   if (!k) return render(pageId, data);
