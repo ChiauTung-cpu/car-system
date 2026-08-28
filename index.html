@@ -560,7 +560,7 @@ function render(pageId, data){
   document.getElementById(pageId + "NoCount").innerText = no;
 }
 
-// 🚀 核心：同步更新回 Google 試算表
+// 🚀 核心：同步更新回 Google 試算表 (修正版)
 function submitMaintenance(pageId, idCode) {
   const staffInput = localStorage.getItem("staffName") || "";
   if (!staffInput) {
@@ -587,18 +587,23 @@ function submitMaintenance(pageId, idCode) {
     staff: staffInput
   };
 
+  // 使用 text/plain 可以避免 CORS preflight (OPTIONS) 請求被阻擋問題
   fetch(GAS_API_URL, {
     method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload)
   })
-  .then(() => {
-    alert("✅ 登記成功！資料已同步上傳至 Google 試算表。");
-    loadData(pageId);
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success") {
+      alert("✅ 登記成功！資料已同步上傳至 Google 試算表。");
+      loadData(pageId); // 重新載入最新資料
+    } else {
+      alert("❌ 寫入失敗：" + res.message);
+    }
   })
   .catch(err => {
-    alert("❌ 上傳失敗，請檢查網路狀態：" + err);
+    alert("❌ 上傳失敗，請檢查網路狀態或 GAS 部署狀態：" + err);
   });
 }
 
