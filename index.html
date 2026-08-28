@@ -414,11 +414,25 @@ function render(pageId, data){
   updateMonthButtonUI(pageId);
   if (!Array.isArray(data)) return;
 
+  // 🧹 清理與過濾資料 (排除標題、表頭、空白列、總計/合計列)
   let renderData = data.filter(r => {
     if (!r || !r.length) return false;
-    const rowStr = r.join("").replace(/[\s\u3000]+/g, "");
-    if (rowStr.includes("臺北電務段") || rowStr.includes("維護時程表") || rowStr.includes("站台編號") || rowStr.includes("ABSNo") || rowStr.includes("車輛號碼")) return false;
-    return (r[0] || "").trim() !== "" || (r[1] || "").trim() !== "";
+    
+    const rowStr = r.join("").replace(/[\s\u3000]+/g, ""); // 去除所有空白字元
+    
+    // 排除完全空白的列
+    if (!rowStr) return false;
+
+    // 排除無效標題列與總計列
+    const ignoreKeywords = ["臺北電務段", "維護時程表", "站台編號", "ABSNo", "車輛號碼", "總計", "合計", "TOTAL", "Total"];
+    for (let kw of ignoreKeywords) {
+      if (rowStr.includes(kw)) return false;
+    }
+
+    // 確保關鍵欄位（A欄編號或B欄名稱）真的有文字
+    const colA = (r[0] || "").trim();
+    const colB = (r[1] || "").trim();
+    return colA !== "" || colB !== "";
   });
 
   const isH1 = currentPeriods[pageId] === 'H1';
@@ -432,7 +446,7 @@ function render(pageId, data){
     });
   }
 
-  // 未保養在前面
+  // 未保養優先排在最前面
   renderData.sort((a, b) => {
     let dateA = pageId === "carPage" ? (isH1 ? a[7] : a[9]) : (pageId === "deskPage" ? (isH1 ? a[7] : a[11]) : (isH1 ? a[4] : a[8]));
     let dateB = pageId === "carPage" ? (isH1 ? b[7] : b[9]) : (pageId === "deskPage" ? (isH1 ? b[7] : b[11]) : (isH1 ? b[4] : b[8]));
@@ -443,10 +457,10 @@ function render(pageId, data){
 
   renderData.forEach(r => {
     if (!r) return;
-    let idCode = (r[0] || r[1] || "").trim(); // 唯一識別 Key
+    let idCode = (r[0] || r[1] || "").trim();
 
     if (pageId === "carPage") {
-      idCode = (r[1] || "").trim(); // 車號
+      idCode = (r[1] || "").trim();
       let radio1 = (r[2] || "").trim();
       let radio2 = (r[4] || "").trim();
       let note = (r[11] || "").trim();
@@ -509,7 +523,7 @@ function render(pageId, data){
           </div>`;
       }
     } 
-    else { // 轉播站、隧道、路邊
+    else {
       let code = (r[0] || "").trim();
       let name = (r[1] || "").trim();
       let note = (r[10] || "").trim();
